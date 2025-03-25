@@ -11,7 +11,11 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
-  const isAdmin = localStorage.getItem("userRole") === "Admin";
+  // Comment chức năng kiểm tra vai trò
+  // const isAdmin = localStorage.getItem("userRole") === "Admin";
+
+  // Luôn coi như là Admin
+  const isAdmin = true;
 
   const menuItems = [
     {

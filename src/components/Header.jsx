@@ -2,15 +2,10 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const Header = () => {
-  const navigate = useNavigate();
-
+  // Bỏ qua chức năng đăng xuất
   const handleLogout = () => {
-    // Xóa thông tin đăng nhập
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userRole");
-
-    // Chuyển hướng về trang login
-    navigate("/login");
+    console.log("Logout functionality disabled");
+    // Không xóa thông tin đăng nhập và không chuyển hướng
   };
 
   return (
@@ -18,14 +13,12 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-gray-900">Quản lý KTX</h1>
         <div className="flex items-center">
-          <span className="px-4 text-gray-700">
-            {localStorage.getItem("userName") || "Admin"}
-          </span>
+          <span className="px-4 text-gray-700">Admin</span>
           <button
             onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm font-medium"
           >
-            Đăng xuất
+            Đăng xuất (đã vô hiệu)
           </button>
         </div>
       </div>
