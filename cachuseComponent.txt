@@ -1,0 +1,170 @@
+component USERDetail
+Cách sử dụng component này
+Component UserDetails được thiết kế để hiển thị chi tiết thông tin của một người dùng, bao gồm:
+
+Thông tin cá nhân
+Thông tin phòng ở
+Thông tin hợp đồng
+Lịch sử thanh toán
+Để sử dụng component này, bạn cần truyền vào hai props:
+
+userId: ID của người dùng cần xem chi tiết
+onClose: Hàm sẽ được gọi khi người dùng nhấn nút đóng
+Ví dụ:
+
+import React, { useState } from 'react';
+import UserDetails from '../components/users/UserDetails';
+
+const UsersPage = () => {
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  
+  const openUserDetails = (userId) => {
+    setSelectedUserId(userId);
+  };
+  
+  const closeUserDetails = () => {
+    setSelectedUserId(null);
+  };
+  
+  return (
+    <div>
+      {/* Danh sách người dùng và các phần khác */}
+      
+      {/* Hiển thị chi tiết khi có userId được chọn */}
+      {selectedUserId && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <UserDetails userId={selectedUserId} onClose={closeUserDetails} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+src/
+|-- assets/
+|   |-- images/
+|   |-- styles/
+|   |   |-- index.css
+|   |   |-- tailwind.css
+|
+|-- components/
+|   |-- common/
+|   |   |-- Button.jsx
+|   |   |-- Card.jsx
+|   |   |-- Input.jsx
+|   |   |-- Modal.jsx
+|   |   |-- Notification.jsx
+|   |   |-- Pagination.jsx
+|   |   |-- Table.jsx
+|   |
+|   |-- layouts/
+|   |   |-- MainLayout.jsx
+|   |   |-- AdminLayout.jsx
+|   |   |-- UserLayout.jsx
+|   |   |-- AuthLayout.jsx
+|
+|-- features/
+|   |-- admin/
+|   |   |-- components/
+|   |   |   |-- Dashboard/
+|   |   |   |   |-- DashboardStats.jsx
+|   |   |   |   |-- DashboardCharts.jsx
+|   |   |   |
+|   |   |   |-- Users/
+|   |   |   |   |-- UserTable.jsx
+|   |   |   |   |-- UserForm.jsx
+|   |   |   |   |-- UserDetails.jsx
+|   |   |   |
+|   |   |   |-- Rooms/
+|   |   |   |   |-- RoomTable.jsx
+|   |   |   |   |-- RoomForm.jsx
+|   |   |   |   |-- RoomDetails.jsx
+|   |   |   |
+|   |   |   |-- Contracts/
+|   |   |   |   |-- ContractTable.jsx
+|   |   |   |   |-- ContractForm.jsx
+|   |   |   |   |-- ContractDetails.jsx
+|   |   |   |
+|   |   |   |-- Payments/
+|   |   |   |   |-- PaymentTable.jsx
+|   |   |   |   |-- PaymentForm.jsx
+|   |   |   |   |-- PaymentDetails.jsx
+|   |   |
+|   |   |-- pages/
+|   |   |   |-- DashboardPage.jsx
+|   |   |   |-- UsersPage.jsx
+|   |   |   |-- RoomsPage.jsx
+|   |   |   |-- ContractsPage.jsx
+|   |   |   |-- PaymentsPage.jsx
+|   |   |   |-- SettingsPage.jsx
+|   |
+|   |-- user/
+|   |   |-- components/
+|   |   |   |-- Profile/
+|   |   |   |   |-- ProfileInfo.jsx
+|   |   |   |   |-- ProfileEdit.jsx
+|   |   |   |
+|   |   |   |-- Room/
+|   |   |   |   |-- RoomCard.jsx
+|   |   |   |   |-- RoomDetails.jsx
+|   |   |   |
+|   |   |   |-- Contract/
+|   |   |   |   |-- ContractList.jsx
+|   |   |   |   |-- ContractDetails.jsx
+|   |   |   |
+|   |   |   |-- Payment/
+|   |   |   |   |-- PaymentHistory.jsx
+|   |   |   |   |-- PaymentForm.jsx
+|   |   |
+|   |   |-- pages/
+|   |   |   |-- DashboardPage.jsx
+|   |   |   |-- ProfilePage.jsx
+|   |   |   |-- RoomInfoPage.jsx
+|   |   |   |-- ContractsPage.jsx
+|   |   |   |-- PaymentsPage.jsx
+|   |
+|   |-- auth/
+|   |   |-- components/
+|   |   |   |-- LoginForm.jsx
+|   |   |   |-- RegisterForm.jsx
+|   |   |   |-- ForgotPasswordForm.jsx
+|   |   |
+|   |   |-- pages/
+|   |   |   |-- LoginPage.jsx
+|   |   |   |-- RegisterPage.jsx
+|   |   |   |-- ForgotPasswordPage.jsx
+|
+|-- hooks/
+|   |-- useAuth.js
+|   |-- usePagination.js
+|   |-- useModal.js
+|   |-- useNotification.js
+|   |-- useForm.js
+|
+|-- services/
+|   |-- api.js (Axios instance setup)
+|   |-- authService.js
+|   |-- userService.js
+|   |-- roomService.js
+|   |-- contractService.js
+|   |-- paymentService.js
+|
+|-- utils/
+|   |-- dateUtils.js
+|   |-- formatUtils.js
+|   |-- validationUtils.js
+|   |-- storageUtils.js
+|
+|-- context/
+|   |-- AuthContext.jsx
+|   |-- ThemeContext.jsx
+|   |-- NotificationContext.jsx
+|
+|-- routes/
+|   |-- PrivateRoute.jsx
+|   |-- AdminRoute.jsx
+|   |-- UserRoute.jsx
+|   |-- routes.js (route definitions)
+|
+|-- App.jsx
+|-- main.jsx

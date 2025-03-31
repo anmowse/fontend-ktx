@@ -54,7 +54,7 @@ const Sidebar = () => {
 
   return (
     <div className="bg-blue-800 text-white w-64 hidden md:block flex-shrink-0">
-      <div className="p-4 font-bold text-xl">KTX Management</div>
+      <div className="p-4 font-bold text-xl">Quản lý ký túc xá KTX</div>
       <nav className="mt-5">
         <ul>
           {menuItems.map((item) => {
