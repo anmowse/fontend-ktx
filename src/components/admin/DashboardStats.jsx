@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import StatisticCard from "./StatisticCard";
 import axios from "axios";
+import API_URL from "../../config/api";
 import {
   UserIcon,
   HomeIcon,
@@ -8,6 +9,8 @@ import {
   CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
 
+// Định nghĩa API URL
+// Thống kê bảng điều khiển
 const DashboardStats = () => {
   const [stats, setStats] = useState({
     users: 0,
@@ -22,14 +25,10 @@ const DashboardStats = () => {
     const fetchStats = async () => {
       try {
         // Fetch users count
-        const usersResponse = await axios.get(
-          "http://127.0.0.1:8000/api/users"
-        );
+        const usersResponse = await axios.get(`${API_URL}/users`);
 
         // Fetch rooms data
-        const roomsResponse = await axios.get(
-          "http://127.0.0.1:8000/api/rooms"
-        );
+        const roomsResponse = await axios.get(`${API_URL}/rooms`);
         const rooms = roomsResponse.data;
         const totalRooms = rooms.length;
         const occupiedRooms = rooms.filter(
@@ -37,14 +36,10 @@ const DashboardStats = () => {
         ).length;
 
         // Fetch contracts
-        const contractsResponse = await axios.get(
-          "http://127.0.0.1:8000/api/contracts"
-        );
+        const contractsResponse = await axios.get(`${API_URL}/contracts`);
 
         // Fetch payments
-        const paymentsResponse = await axios.get(
-          "http://127.0.0.1:8000/api/payments"
-        );
+        const paymentsResponse = await axios.get(`${API_URL}/payments`);
         const pendingPayments = paymentsResponse.data.filter(
           (payment) => payment.status === "chua thanh toan"
         ).length;

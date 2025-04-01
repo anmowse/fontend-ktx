@@ -27,6 +27,7 @@ const userService = {
     // Lấy thông tin chi tiết một user
     getUserDetails: async (userId) => {
         try {
+            // Sửa endpoint từ room/${userId}/users thành users/${userId}
             const response = await axios.get(`/users/${userId}`);
             return response.data;
         } catch (error) {
@@ -38,6 +39,7 @@ const userService = {
     // Lấy thông tin phòng của user
     getUserRooms: async (userId) => {
         try {
+            // Sửa endpoint từ room/${userId}/users thành users/${userId}/rooms
             const response = await axios.get(`/users/${userId}/rooms`);
             return response.data;
         } catch (error) {
@@ -49,7 +51,6 @@ const userService = {
     // Lấy thông tin hợp đồng của user
     getUserContracts: async (userId) => {
         try {
-
             const response = await axios.get(`/users/${userId}/contracts`);
             return response.data;
         } catch (error) {

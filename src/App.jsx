@@ -1,45 +1,120 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import UsersPage from "./pages/UsersPage";
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
-import LoginPage from "./pages/LoginPage";
+import {
+  AuthProvider,
+  LoginPage,
+  ProtectedRoute,
+  Header,
+} from "./contexts/admin/AuthContext";
+import Dashboard from "./components/admin/Dashboard";
+import UsersPage from "./components/admin/users/UsersPage";
+import Sidebar from "./components/admin/Sidebar";
+// Import các trang quản lý
+import RoomManagement from "./pages/admin/RoomManagement";
+import ContractManagement from "./pages/admin/ContractManagement"; // Thêm dòng này
 
 function App() {
-  // Bỏ qua kiểm tra đăng nhập, luôn coi như đã đăng nhập và là Admin
-  // (Code này sẽ được thay thế khi chức năng đăng nhập được sửa)
-  const isLoggedIn = true;
-  const userRole = "Admin";
-
   return (
-    <Router>
-      <div className="flex h-screen bg-gray-100">
-        {/* Luôn hiển thị Sidebar */}
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Luôn hiển thị Header */}
-          <Header />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
-            <Routes>
-              {/* Route trang Dashboard */}
-              <Route path="/dashboard" element={<Dashboard />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public route - Login page */}
+          <Route path="/login" element={<LoginPage />} />
 
-              {/* Route trang quản lý sinh viên */}
-              <Route path="/users" element={<UsersPage />} />
+          {/* Protected routes for Admin */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <div className="flex h-screen bg-gray-100">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                      <Dashboard />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
 
-              {/* Trang mặc định dẫn đến Dashboard */}
-              <Route path="/" element={<Dashboard />} />
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <div className="flex h-screen bg-gray-100">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                      <UsersPage />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
 
-              {/* Các route khác sẽ được thêm sau */}
-              {/* <Route path="/rooms" element={<div>Rooms Page</div>} />
-              <Route path="/contracts" element={<div>Contracts Page</div>} />
-              <Route path="/payments" element={<div>Payments Page</div>} /> */}
-            </Routes>
-          </main>
-        </div>
-      </div>
-    </Router>
+          {/* Thêm route cho Quản lý phòng */}
+          <Route
+            path="/rooms"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <div className="flex h-screen bg-gray-100">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
+                      <RoomManagement />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Thêm route cho Quản lý hợp đồng */}
+          <Route
+            path="/contracts"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <div className="flex h-screen bg-gray-100">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
+                      <ContractManagement />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected routes for all users */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="flex h-screen bg-gray-100">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                      <Dashboard />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all other routes */}
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

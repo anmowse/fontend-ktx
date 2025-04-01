@@ -5,10 +5,10 @@ import {
   ArrowsUpDownIcon as SortAscendingIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import UserTable from "../components/users/UserTable";
-import UserForm from "../components/users/UserForm";
-import UserDetails from "../components/users/UserDetails";
-import userService from "../services/userService";
+import UserTable from "./UserTable";
+import UserForm from "./UserForm";
+import UserDetails from "./UserDetails";
+import userService from "../../../services/admin/userService";
 
 const UsersPage = () => {
   // State quản lý danh sách users
