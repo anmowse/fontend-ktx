@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API_URL from "../../config/api";
 
 // Create the AuthContext
 const AuthContext = createContext();
@@ -57,15 +58,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
 
-    console.log("Đang cố gắng đăng nhập với:", { email }); // Log để debug, xóa sau khi hoạt động tốt
-
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/login", {
+      const response = await axios.post(`${API_URL}/login`, {
         email,
         password,
       });
-
-      console.log("Phản hồi từ server:", response.data); // Log để debug, xóa sau khi hoạt động tốt
 
       const { token: newToken, user: userData } = response.data;
 
@@ -84,14 +81,10 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (err) {
       setLoading(false);
-      console.error("Chi tiết lỗi đăng nhập:", err); // Log chi tiết lỗi
 
       // Format the error message
       let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại sau.";
       if (err.response) {
-        console.log("Trạng thái lỗi:", err.response.status);
-        console.log("Dữ liệu lỗi:", err.response.data);
-
         switch (err.response.status) {
           case 401:
             errorMessage = "Email hoặc mật khẩu không đúng";
@@ -141,7 +134,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         // Call the logout API endpoint with token
         await axios.post(
-          "http://127.0.0.1:8000/api/logout",
+          `${API_URL}/logout`,
           {},
           {
             headers: {
@@ -176,7 +169,7 @@ export const AuthProvider = ({ children }) => {
 
   //     try {
   //       const response = await axios.post(
-  //         "http://127.0.0.1:8000/api/register",
+  //         "${API_URL}/api/register",
   //         userData
   //       );
   //       setLoading(false);
@@ -270,7 +263,6 @@ export const LoginPage = () => {
       // Navigation happens in the effect based on user role
     } catch (err) {
       // Error is handled in the login function and stored in context
-      console.error("Login submission error:", err);
 
       // Show more detailed error message
       if (err.response) {

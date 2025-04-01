@@ -6,6 +6,7 @@ import {
   ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import axios from "axios";
+import API_URL from "../../../config/api";
 
 const UserTable = ({ users, onEdit, onDelete, onViewDetails }) => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -24,20 +25,20 @@ const UserTable = ({ users, onEdit, onDelete, onViewDetails }) => {
       // Kiểm tra xem sinh viên có hợp đồng hay không
       try {
         const contractsResponse = await axios.get(
-          `http://127.0.0.1:8000/api/users/${userId}/contracts`
+          `${API_URL}/users/${userId}/contracts`
         );
         if (contractsResponse.data && contractsResponse.data.length > 0) {
           constraints.push("hợp đồng");
         }
       } catch (contractError) {
-        console.warn("Không thể kiểm tra ràng buộc hợp đồng:", contractError);
+        console.warn("Không Có ràng buộc hợp đồng nào:", contractError);
         hasAnyError = true;
       }
 
       // Kiểm tra xem sinh viên có thanh toán hay không
       try {
         const paymentsResponse = await axios.get(
-          `http://127.0.0.1:8000/api/users/${userId}/payments`
+          `${API_URL}/users/${userId}/payments`
         );
         if (paymentsResponse.data && paymentsResponse.data.length > 0) {
           constraints.push("thanh toán");
@@ -58,7 +59,7 @@ const UserTable = ({ users, onEdit, onDelete, onViewDetails }) => {
       } else if (hasAnyError) {
         // Có lỗi khi kiểm tra ràng buộc - cho phép xóa nhưng cảnh báo
         const confirmDelete = window.confirm(
-          "Không thể kiểm tra đầy đủ ràng buộc. Bạn vẫn muốn tiếp tục xóa sinh viên này?"
+          "Không Có ràng buộc hợp đồng nào: . Bạn vẫn muốn tiếp tục xóa sinh viên này?"
         );
         if (confirmDelete) {
           onDelete(userId);

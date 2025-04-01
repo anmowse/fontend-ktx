@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
+// thẻ thống kê
 const StatisticCard = ({ title, value, icon, color, bgColor, link }) => {
   return (
     <Link to={link} className="text-decoration-none">

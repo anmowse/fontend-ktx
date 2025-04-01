@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-
+import API_URL from "../../../config/api";
 const UserDetails = ({ userId, onClose }) => {
   const [userData, setUserData] = useState(null);
   const [userRooms, setUserRooms] = useState([]);
@@ -11,7 +11,7 @@ const UserDetails = ({ userId, onClose }) => {
   const [error, setError] = useState(null);
   const [apiResponses, setApiResponses] = useState({});
 
-  const API_BASE_URL = "http://127.0.0.1:8000/api";
+  
 
   useEffect(() => {
     // Function to fetch all user data
@@ -22,7 +22,7 @@ const UserDetails = ({ userId, onClose }) => {
 
       try {
         // Fetch basic user info
-        const userResponse = await axios.get(`${API_BASE_URL}/users/${userId}`);
+        const userResponse = await axios.get(`${API_URL}/users/${userId}`);
         setUserData(userResponse.data);
         responses.user = userResponse.data;
         console.log("User data:", userResponse.data);
@@ -32,7 +32,7 @@ const UserDetails = ({ userId, onClose }) => {
         // Fetch user contracts
         try {
           const contractsResponse = await axios.get(
-            `${API_BASE_URL}/users/${userId}/contracts`
+            `${API_URL}/users/${userId}/contracts`
           );
           console.log("Contracts data:", contractsResponse.data);
           responses.contracts = contractsResponse.data;
@@ -49,7 +49,7 @@ const UserDetails = ({ userId, onClose }) => {
         // Fetch user payments
         try {
           const paymentsResponse = await axios.get(
-            `${API_BASE_URL}/users/${userId}/payments`
+            `${API_URL}/users/${userId}/payments`
           );
           console.log("Payments data:", paymentsResponse.data);
           responses.payments = paymentsResponse.data;
