@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaSave, FaTimes, FaCalendar } from "react-icons/fa";
 import { differenceInMonths } from "date-fns";
+import axios from "axios";
 
 const ContractForm = ({
   contract = null,
@@ -15,15 +16,28 @@ const ContractForm = ({
     id_rooms: "",
     start_date: "",
     end_date: "",
-    // Các trường tính toán (không có trong DB)
     duration: "", // Chỉ để hiển thị, không gửi lên server
   });
 
   // State cho errors
   const [errors, setErrors] = useState({});
 
+  // State cho thông báo thành công
+  const [successMessage, setSuccessMessage] = useState("");
+
   // State cho submission
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State riêng cho việc vô hiệu hóa nút submit
+  const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+
+  // State để lưu thông tin chi tiết của sinh viên đã chọn
+  const [selectedUserInfo, setSelectedUserInfo] = useState(null);
+
+  // State để theo dõi tên sinh viên đã chọn hiển thị trên dropdown
+  const [selectedUserName, setSelectedUserName] = useState(
+    "-- Chọn sinh viên --"
+  );
 
   // Kiểm tra và fill data nếu đang edit contract
   useEffect(() => {
@@ -49,6 +63,35 @@ const ContractForm = ({
       });
     }
   }, [contract]);
+
+  // Lấy thông tin chi tiết của sinh viên khi chọn hoặc khi component mount với dữ liệu có sẵn
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (formData.id_users) {
+        try {
+          const response = await axios.get(`/users/${formData.id_users}`);
+          setSelectedUserInfo(response.data);
+        } catch (error) {
+          console.error("Lỗi khi lấy thông tin chi tiết sinh viên:", error);
+        }
+      }
+    };
+
+    fetchUserDetails();
+  }, [formData.id_users]);
+
+  useEffect(() => {
+    if (formData.id_users) {
+      const selectedUser = users.find(
+        (u) => u.id_users === parseInt(formData.id_users)
+      );
+      if (selectedUser) {
+        setSelectedUserName(selectedUser.name || "N/A");
+      }
+    } else {
+      setSelectedUserName("-- Chọn sinh viên --");
+    }
+  }, [formData.id_users, users]);
 
   // Xử lý thay đổi input
   const handleChange = (e) => {
@@ -95,13 +138,106 @@ const ContractForm = ({
     }
   };
 
+  // Xử lý khi người dùng chọn sinh viên
+  const handleUserChange = async (e) => {
+    const userId = e.target.value;
+
+    // Cập nhật formData trước
+    setFormData((prev) => ({
+      ...prev,
+      id_users: userId,
+    }));
+
+    // Cập nhật tên hiển thị
+    if (userId) {
+      const selectedUser = users.find(
+        (u) => String(u.id_users) === String(userId)
+      );
+      if (selectedUser) {
+        setSelectedUserName(selectedUser.name || "N/A");
+        console.log("Đã chọn sinh viên:", selectedUser.name);
+      }
+    } else {
+      setSelectedUserName("-- Chọn sinh viên --");
+    }
+
+    // Reset thông báo mỗi khi thay đổi người dùng
+    setSuccessMessage("");
+
+    // Gọi API kiểm tra hợp đồng hiện tại của sinh viên
+    if (userId) {
+      try {
+        const response = await axios.get(`/users/${userId}/contracts`);
+        const userContracts = response.data || [];
+
+        // Kiểm tra xem sinh viên đã có hợp đồng đang hoạt động chưa
+        const today = new Date();
+        const activeContract = userContracts.find((c) => {
+          // Bỏ qua hợp đồng hiện tại đang sửa (nếu có)
+          if (contract && c.id_contracts === contract.id_contracts) {
+            return false;
+          }
+
+          const endDate = new Date(c.end_date);
+          return endDate > today;
+        });
+
+        if (activeContract) {
+          // Sinh viên có hợp đồng đang hoạt động -> không cho tạo hợp đồng mới
+          setErrors((prev) => ({
+            ...prev,
+            id_users:
+              "Sinh viên này đã có hợp đồng đang hoạt động đến ngày " +
+              new Date(activeContract.end_date).toLocaleDateString("vi-VN") +
+              ". Không thể tạo hợp đồng mới khi hợp đồng cũ chưa hết hạn.",
+          }));
+          setSuccessMessage(""); // Xóa thông báo thành công nếu có
+
+          // Chỉ vô hiệu hóa nút submit, không vô hiệu hóa toàn form
+          setIsSubmitDisabled(true);
+        } else {
+          // Sinh viên chưa có hợp đồng hoặc tất cả hợp đồng đã hết hạn -> có thể tạo hợp đồng mới
+          const hasExpiredContracts = userContracts.length > 0;
+
+          setErrors((prev) => ({
+            ...prev,
+            id_users: null,
+          }));
+
+          // Hiển thị thông báo thành công cho người dùng
+          if (hasExpiredContracts) {
+            setSuccessMessage(
+              "Sinh viên này đã từng có hợp đồng nhưng tất cả đã hết hạn. Có thể tạo hợp đồng mới."
+            );
+          } else {
+            setSuccessMessage(
+              "Sinh viên này chưa từng có hợp đồng. Có thể tạo hợp đồng mới."
+            );
+          }
+
+          // Cho phép submit
+          setIsSubmitDisabled(false);
+        }
+      } catch (error) {
+        console.error(
+          "Lỗi khi kiểm tra hợp đồng hiện tại của sinh viên:",
+          error
+        );
+      }
+    }
+  };
+
   // Validation form trước khi submit
   const validateForm = () => {
     const newErrors = {};
 
-    // Kiểm tra user
+    // Kiểm tra user và xem nếu đã có lỗi về hợp đồng đang hoạt động
     if (!formData.id_users) {
       newErrors.id_users = "Vui lòng chọn sinh viên";
+    } else if (errors.id_users && errors.id_users.includes("đang hoạt động")) {
+      // Giữ nguyên lỗi hợp đồng đang hoạt động
+      newErrors.id_users = errors.id_users;
+      return false; // Ngừng validation, không cho phép submit
     }
 
     // Kiểm tra phòng
@@ -139,13 +275,23 @@ const ContractForm = ({
     setIsSubmitting(true);
 
     try {
+      const formatDateForMySQL = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toISOString().slice(0, 10) + " 00:00:00"; // Thêm giờ 00:00:00 vào ngày
+      };
+
       // Chuẩn bị dữ liệu để gửi đi (chỉ những trường có trong DB)
       const dataToSubmit = {
         id_users: parseInt(formData.id_users),
         id_rooms: parseInt(formData.id_rooms),
-        start_date: formData.start_date,
-        end_date: formData.end_date,
+        start_date: formatDateForMySQL(formData.start_date),
+        end_date: formatDateForMySQL(formData.end_date),
       };
+
+      // Thêm id_contracts vào dữ liệu khi đang chỉnh sửa hợp đồng
+      if (contract && contract.id_contracts) {
+        dataToSubmit.id_contracts = contract.id_contracts;
+      }
 
       // Gọi callback từ parent component
       await onSubmit(dataToSubmit);
@@ -221,7 +367,7 @@ const ContractForm = ({
   const renderRoomOption = (room) => {
     const capacity = getRoomCapacity(room.type);
     const occupancy = room.current_occupancy || 0;
-    console.log("Room capacity:", capacity, "Occupancy:", occupancy);
+    // console.log("Room capacity:", capacity, "Occupancy:", occupancy);
 
     return `Phòng ${room.number} - ${room.type} (${occupancy}/${capacity} người)`;
   };
@@ -244,25 +390,47 @@ const ContractForm = ({
             >
               Sinh viên <span className="text-red-500">*</span>
             </label>
-            <select
-              id="id_users"
-              name="id_users"
-              value={formData.id_users}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md ${
-                errors.id_users ? "border-red-500" : "border-gray-300"
-              }`}
-              disabled={isSubmitting}
-            >
-              <option value="">-- Chọn sinh viên --</option>
-              {users.map((user) => (
-                <option key={user.id_users} value={user.id_users}>
-                  {user.name || "N/A"}
-                </option>
-              ))}
-            </select>
+
+            <div className="relative">
+              <select
+                id="id_users"
+                name="id_users"
+                value={formData.id_users}
+                onChange={handleUserChange}
+                className={`w-full p-2 pr-10 appearance-none border rounded-md ${
+                  errors.id_users ? "border-red-500" : "border-gray-300"
+                }`}
+                disabled={isSubmitting}
+              >
+                <option value="">-- Chọn sinh viên --</option>
+                {users.map((user) => (
+                  <option key={user.id_users} value={user.id_users}>
+                    {user.name || "N/A"}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+
             {errors.id_users && (
               <p className="mt-1 text-sm text-red-500">{errors.id_users}</p>
+            )}
+            {successMessage && (
+              <p className="mt-1 text-sm text-green-600">{successMessage}</p>
             )}
           </div>
 
@@ -399,8 +567,12 @@ const ContractForm = ({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700"
-            disabled={isSubmitting}
+            className={`px-4 py-2 bg-blue-600 text-white rounded-md flex items-center ${
+              isSubmitDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-blue-700"
+            }`}
+            disabled={isSubmitting || isSubmitDisabled}
           >
             <FaSave className="mr-2" />
             {isSubmitting ? "Đang lưu..." : "Lưu hợp đồng"}

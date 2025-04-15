@@ -134,28 +134,6 @@ const RoomFilter = ({ buildings, onFilter, initialFilters = {} }) => {
           </select>
         </div>
 
-        {/* Lọc theo loại phòng */}
-        <div>
-          <label
-            htmlFor="roomType"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Loại phòng
-          </label>
-          <select
-            id="roomType"
-            name="roomType"
-            value={filters.roomType}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tất cả loại phòng</option>
-            <option value="3 giuong">3 giường</option>
-            <option value="6 giuong">6 giường</option>
-            <option value="8 giuong">8 giường</option>
-          </select>
-        </div>
-
         {/* Lọc theo tình trạng lấp đầy */}
         <div>
           <label

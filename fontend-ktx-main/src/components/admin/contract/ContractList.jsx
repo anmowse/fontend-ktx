@@ -247,7 +247,7 @@ const ContractList = ({
                 <tr key={contract.id_contracts} className="hover:bg-gray-50">
                   <td className="px-3 py-2 whitespace-nowrap">
                     <div className="text-xs font-medium text-gray-900">
-                      HD-{contract.id_contracts}
+                      {contract.id_contracts}
                     </div>
                   </td>
                   <td className="px-3 py-2">

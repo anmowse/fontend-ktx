@@ -94,7 +94,12 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
         return true;
       })
       .sort((a, b) => {
-        if (sortField === "price" || sortField === "current_occupancy") {
+        if (
+          sortField === "id_rooms" ||
+          sortField === "price" ||
+          sortField === "current_occupancy" ||
+          sortField === "number"
+        ) {
           return sortDirection === "asc"
             ? a[sortField] - b[sortField]
             : b[sortField] - a[sortField];

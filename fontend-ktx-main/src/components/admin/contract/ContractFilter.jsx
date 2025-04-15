@@ -1,27 +1,35 @@
 import React, { useState, useEffect } from "react";
-import { FaFilter, FaSearch, FaUndo } from "react-icons/fa";
+import {
+  FaFilter,
+  FaSearch,
+  FaUndo,
+  FaCalendarAlt,
+  FaBuilding,
+  FaUser,
+} from "react-icons/fa";
 
 const ContractFilter = ({
   rooms = [],
   users = [],
+  buildings = [],
   onFilter,
   initialFilters = {},
 }) => {
-  // State lưu trữ giá trị của các bộ lọc
   const [filters, setFilters] = useState({
     status: "all",
     room: "all",
+    building: "all",
     user: "all",
     dateFrom: "",
     dateTo: "",
     searchTerm: "",
-    ...initialFilters, // Áp dụng các bộ lọc ban đầu nếu có
+    paymentStatus: "all",
+    ...initialFilters,
   });
 
-  // State để kiểm soát việc hiển thị/ẩn bộ lọc trên mobile
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [filteredRooms, setFilteredRooms] = useState(rooms);
 
-  // Theo dõi thay đổi initialFilters và cập nhật state nếu có sự thay đổi
   useEffect(() => {
     setFilters((prev) => ({
       ...prev,
@@ -29,39 +37,58 @@ const ContractFilter = ({
     }));
   }, [initialFilters]);
 
-  // Hàm xử lý khi giá trị của các bộ lọc thay đổi
+  useEffect(() => {
+    if (filters.building === "all") {
+      setFilteredRooms(rooms);
+    } else {
+      const filtered = rooms.filter(
+        (room) => room.id_buildings === parseInt(filters.building)
+      );
+      setFilteredRooms(filtered);
+    }
+  }, [filters.building, rooms]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    setFilters((prev) => {
+      const newFilters = {
+        ...prev,
+        [name]: value,
+      };
+
+      if (name === "building") {
+        newFilters.room = "all";
+      }
+
+      return newFilters;
+    });
   };
 
-  // Hàm xử lý khi form được submit
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("Đang áp dụng bộ lọc:", filters);
     onFilter(filters);
     if (window.innerWidth < 768) {
-      setIsFilterVisible(false); // Ẩn bộ lọc trên mobile sau khi áp dụng
+      setIsFilterVisible(false);
     }
   };
 
-  // Hàm reset bộ lọc về giá trị mặc định
   const handleReset = () => {
     const defaultFilters = {
       status: "all",
       room: "all",
+      building: "all",
       user: "all",
       dateFrom: "",
       dateTo: "",
       searchTerm: "",
+      paymentStatus: "all",
     };
     setFilters(defaultFilters);
     onFilter(defaultFilters);
   };
 
-  // Toggle hiển thị/ẩn bộ lọc trên mobile
   const toggleFilter = () => {
     setIsFilterVisible(!isFilterVisible);
   };
@@ -93,13 +120,13 @@ const ContractFilter = ({
       <div className={`p-4 ${!isFilterVisible ? "hidden md:block" : ""}`}>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Bộ lọc trạng thái */}
             <div>
               <label
                 htmlFor="status"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Trạng thái hợp đồng
+                <FaCalendarAlt className="inline mr-1 text-blue-500" /> Trạng
+                thái hợp đồng
               </label>
               <select
                 id="status"
@@ -116,13 +143,38 @@ const ContractFilter = ({
               </select>
             </div>
 
-            {/* Bộ lọc phòng */}
+            <div>
+              <label
+                htmlFor="building"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                <FaBuilding className="inline mr-1 text-blue-500" /> Tòa nhà
+              </label>
+              <select
+                id="building"
+                name="building"
+                value={filters.building}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">Tất cả các tòa nhà</option>
+                {buildings.map((building) => (
+                  <option
+                    key={building.id_buildings}
+                    value={building.id_buildings}
+                  >
+                    Tòa {building.nameBuild || building.id_buildings}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label
                 htmlFor="room"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Phòng
+                <FaBuilding className="inline mr-1 text-blue-500" /> Phòng
               </label>
               <select
                 id="room"
@@ -132,7 +184,7 @@ const ContractFilter = ({
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">Tất cả các phòng</option>
-                {rooms.map((room) => (
+                {filteredRooms.map((room) => (
                   <option key={room.id_rooms} value={room.id_rooms}>
                     Phòng {room.number}
                   </option>
@@ -140,13 +192,12 @@ const ContractFilter = ({
               </select>
             </div>
 
-            {/* Bộ lọc sinh viên */}
             <div>
               <label
                 htmlFor="user"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Sinh viên
+                <FaUser className="inline mr-1 text-blue-500" /> Sinh viên
               </label>
               <select
                 id="user"
@@ -158,55 +209,40 @@ const ContractFilter = ({
                 <option value="all">Tất cả sinh viên</option>
                 {users.map((user) => (
                   <option key={user.id_users} value={user.id_users}>
-                    {user.fullname || user.email || `User ${user.id_users}`}
+                    {user.name || user.email || `User ${user.id_users}`}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Ngày bắt đầu */}
             <div>
               <label
-                htmlFor="dateFrom"
+                htmlFor="paymentStatus"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Từ ngày
+                <FaCalendarAlt className="inline mr-1 text-blue-500" /> Trạng
+                thái thanh toán
               </label>
-              <input
-                type="date"
-                id="dateFrom"
-                name="dateFrom"
-                value={filters.dateFrom}
+              <select
+                id="paymentStatus"
+                name="paymentStatus"
+                value={filters.paymentStatus}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Ngày kết thúc */}
-            <div>
-              <label
-                htmlFor="dateTo"
-                className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Đến ngày
-              </label>
-              <input
-                type="date"
-                id="dateTo"
-                name="dateTo"
-                value={filters.dateTo}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
+                <option value="all">Tất cả trạng thái</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="partially_paid">Thanh toán một phần</option>
+                <option value="unpaid">Chưa thanh toán</option>
+              </select>
             </div>
 
-            {/* Tìm kiếm theo mã hợp đồng */}
             <div>
               <label
                 htmlFor="searchTerm"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Tìm kiếm
+                <FaSearch className="inline mr-1 text-blue-500" /> Tìm kiếm
               </label>
               <div className="relative">
                 <input
@@ -223,14 +259,48 @@ const ContractFilter = ({
                 </div>
               </div>
             </div>
+
+            <div>
+              <label
+                htmlFor="dateFrom"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                <FaCalendarAlt className="inline mr-1 text-blue-500" /> Từ ngày
+              </label>
+              <input
+                type="date"
+                id="dateFrom"
+                name="dateFrom"
+                value={filters.dateFrom}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="dateTo"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                <FaCalendarAlt className="inline mr-1 text-blue-500" /> Đến ngày
+              </label>
+              <input
+                type="date"
+                id="dateTo"
+                name="dateTo"
+                value={filters.dateTo}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
 
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
             >
-              Áp dụng bộ lọc
+              <FaFilter className="mr-2" /> Áp dụng bộ lọc
             </button>
           </div>
         </form>

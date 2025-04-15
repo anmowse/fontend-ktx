@@ -188,7 +188,7 @@ const ContractDetail = ({
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Mã SV:</p>
-                    <p className="font-medium">{user?.student_id || "N/A"}</p>
+                    <p className="font-medium">{user?.id_users || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Email:</p>

@@ -22,26 +22,46 @@ const UserTable = ({ users, onEdit, onDelete, onViewDetails }) => {
     let hasAnyError = false;
 
     try {
-      // Kiểm tra xem sinh viên có hợp đồng hay không
+      // Kiểm tra xem sinh viên có hợp đồng đang hoạt động hay không
       try {
         const contractsResponse = await axios.get(
           `${API_URL}/users/${userId}/contracts`
         );
+
         if (contractsResponse.data && contractsResponse.data.length > 0) {
-          constraints.push("hợp đồng");
+          // Kiểm tra xem có hợp đồng đang hoạt động không
+          const today = new Date();
+          const activeContracts = contractsResponse.data.filter((contract) => {
+            const endDate = new Date(contract.end_date);
+            return endDate > today;
+          });
+
+          if (activeContracts.length > 0) {
+            constraints.push("hợp đồng đang hoạt động");
+          }
         }
       } catch (contractError) {
-        console.warn("Không Có ràng buộc hợp đồng nào:", contractError);
+        console.warn("Không thể kiểm tra ràng buộc hợp đồng:", contractError);
         hasAnyError = true;
       }
 
-      // Kiểm tra xem sinh viên có thanh toán hay không
+      // Kiểm tra xem sinh viên có thanh toán chưa hoàn tất hay không
       try {
         const paymentsResponse = await axios.get(
           `${API_URL}/users/${userId}/payments`
         );
+
         if (paymentsResponse.data && paymentsResponse.data.length > 0) {
-          constraints.push("thanh toán");
+          // Kiểm tra xem có khoản thanh toán nào chưa hoàn tất không
+          const unpaidPayments = paymentsResponse.data.filter(
+            (payment) =>
+              payment.status === "unpaid" ||
+              payment.status === "chua thanh toan"
+          );
+
+          if (unpaidPayments.length > 0) {
+            constraints.push("khoản thanh toán chưa hoàn tất");
+          }
         }
       } catch (paymentError) {
         console.warn("Không thể kiểm tra ràng buộc thanh toán:", paymentError);
@@ -52,14 +72,12 @@ const UserTable = ({ users, onEdit, onDelete, onViewDetails }) => {
       if (constraints.length > 0) {
         // Có ràng buộc - thông báo và không cho phép xóa
         const constraintMessage = constraints.join(", ");
-        alert(
-          `Không thể xóa! Sinh viên này đang có ${constraintMessage}. Vui lòng xóa các ${constraintMessage} trước.`
-        );
+        alert(`Không thể xóa! Sinh viên này đang có ${constraintMessage}`);
         return; // Dừng hàm, không tiếp tục xóa
       } else if (hasAnyError) {
         // Có lỗi khi kiểm tra ràng buộc - cho phép xóa nhưng cảnh báo
         const confirmDelete = window.confirm(
-          "Không Có ràng buộc hợp đồng nào: . Bạn vẫn muốn tiếp tục xóa sinh viên này?"
+          "Không thể kiểm tra đầy đủ ràng buộc. Bạn vẫn muốn tiếp tục xóa sinh viên này?"
         );
         if (confirmDelete) {
           onDelete(userId);

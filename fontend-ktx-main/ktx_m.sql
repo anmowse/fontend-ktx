@@ -23,7 +23,7 @@ CREATE TABLE Rooms(
     id_rooms int AUTO_INCREMENT PRIMARY KEY,
     id_buildings int NOT NULL,
     number int NOT NULL,
-    type ENUM('3 giuong', '6 giuong' ,'8 giuong') NOT NULL,
+    type ENUM('8 giuong') NOT NULL DEFAULT '8 giuong', 
     current_occupancy int DEFAULT 0, 
     price decimal(10,2) NOT NULL,
     FOREIGN KEY(id_buildings) REFERENCES Buildings(id_buildings)
@@ -91,8 +91,8 @@ INSERT INTO Buildings (nameBuild, location) VALUES
 
 -- Thêm dữ liệu vào bảng Rooms
 INSERT INTO Rooms (id_buildings, number, type, current_occupancy, price) VALUES
-(1, 101, '3 giuong', 2, 500000.00),
-(2, 202, '6 giuong', 4, 800000.00),
+(1, 101, '8 giuong', 6, 1200000.00),
+(2, 202, '8 giuong', 4, 1200000.00),
 (3, 303, '8 giuong', 6, 1200000.00);
 
 -- Thêm dữ liệu vào bảng Contracts

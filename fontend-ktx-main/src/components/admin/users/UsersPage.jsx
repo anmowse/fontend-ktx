@@ -107,13 +107,54 @@ const UsersPage = () => {
 
   // Hàm xóa user
   const handleDeleteUser = async (userId) => {
-    // Hiển thị hộp thoại xác nhận
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sinh viên này không?")) {
-      return;
-    }
-
     try {
+      // Kiểm tra trạng thái hợp đồng và thanh toán của user
+      let userStatus;
+      try {
+        userStatus = await userService.checkUserContractStatus(userId);
+      } catch (statusError) {
+        console.error("Lỗi khi kiểm tra trạng thái:", statusError);
+        // Nếu không kiểm tra được, giả định không có hợp đồng hoặc thanh toán
+        userStatus = { hasActiveContracts: false, hasUnpaidPayments: false };
+      }
+
+      if (userStatus.hasActiveContracts) {
+        setError("Không thể xóa sinh viên vì còn hợp đồng đang có hiệu lực.");
+        return;
+      }
+
+      if (userStatus.hasUnpaidPayments) {
+        setError(
+          "Không thể xóa sinh viên vì còn khoản thanh toán chưa hoàn thành."
+        );
+        return;
+      }
+
+      // Lấy thông tin phòng nếu có thể
+      let userWithRoomInfo = null;
+      try {
+        userWithRoomInfo = await userService.getUserWithRoomInfo(userId);
+      } catch (roomError) {
+        console.error("Lỗi khi lấy thông tin phòng:", roomError);
+        // Tiếp tục xóa user ngay cả khi không lấy được thông tin phòng
+      }
+
+      // Xóa user
       await userService.deleteUser(userId);
+
+      // Nếu user có liên kết với phòng, cập nhật current_occupancy của phòng đó
+      if (userWithRoomInfo && userWithRoomInfo.roomId) {
+        try {
+          await userService.updateRoomOccupancy(userWithRoomInfo.roomId, -1);
+        } catch (roomUpdateError) {
+          console.error(
+            "Lỗi khi cập nhật số người trong phòng:",
+            roomUpdateError
+          );
+          // Không dừng tiến trình vì user đã được xóa thành công
+        }
+      }
+
       fetchUsers(); // Refresh danh sách
       setError(null);
       alert("Xóa sinh viên thành công!");
@@ -227,7 +268,7 @@ const UsersPage = () => {
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+              placeholder="Tìm kiếm theo tên"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

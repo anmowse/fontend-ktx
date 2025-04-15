@@ -11,6 +11,7 @@ import API_URL from "../../config/api";
 const ContractManagement = () => {
   // State cho dữ liệu
   const [contracts, setContracts] = useState([]);
+  const [filteredContracts, setFilteredContracts] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -25,7 +26,18 @@ const ContractManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
-  const [filters, setFilters] = useState({});
+
+  // Khởi tạo filters với các giá trị mặc định
+  const [filters, setFilters] = useState({
+    status: "all",
+    room: "all",
+    building: "all",
+    user: "all",
+    dateFrom: "",
+    dateTo: "",
+    searchTerm: "",
+    paymentStatus: "all",
+  });
 
   // Fetch data
   useEffect(() => {
@@ -35,6 +47,8 @@ const ContractManagement = () => {
         // Lấy danh sách hợp đồng
         const contractsRes = await axios.get(`${API_URL}/contracts`);
         setContracts(contractsRes.data);
+        // Đặt filteredContracts ban đầu bằng contracts để hiển thị tất cả
+        setFilteredContracts(contractsRes.data);
 
         // Lấy danh sách phòng
         const roomsRes = await axios.get(`${API_URL}/rooms`);
@@ -74,15 +88,124 @@ const ContractManagement = () => {
 
   // Xử lý lọc hợp đồng
   const handleFilter = (filterValues) => {
+    console.log("Nhận bộ lọc mới:", filterValues);
     setFilters(filterValues);
+
+    // Áp dụng bộ lọc ngay sau khi nhận giá trị mới
+    const filtered = applyFiltersToContracts(contracts, filterValues);
+    setFilteredContracts(filtered);
   };
 
-  // Lọc dữ liệu theo filters
-  const filteredContracts = contracts.filter((contract) => {
-    // Filter logic based on filterValues
-    // Implement filtering based on your requirements
-    return true; // Return all by default
-  });
+  // Tách logic lọc thành hàm riêng để có thể tái sử dụng
+  const applyFiltersToContracts = (contractsToFilter, currentFilters) => {
+    return contractsToFilter.filter((contract) => {
+      // Lọc theo từ khóa tìm kiếm (ID hợp đồng)
+      if (
+        currentFilters.searchTerm &&
+        !String(contract.id_contracts).includes(currentFilters.searchTerm)
+      ) {
+        return false;
+      }
+
+      // Lọc theo trạng thái hợp đồng
+      if (currentFilters.status !== "all") {
+        const status = calculateContractStatus(contract);
+        if (status !== currentFilters.status) {
+          return false;
+        }
+      }
+
+      // Lọc theo phòng
+      if (
+        currentFilters.room !== "all" &&
+        contract.id_rooms !== parseInt(currentFilters.room)
+      ) {
+        return false;
+      }
+
+      // Lọc theo tòa nhà
+      if (currentFilters.building !== "all") {
+        const roomsInBuilding = rooms
+          .filter(
+            (room) => room.id_buildings === parseInt(currentFilters.building)
+          )
+          .map((room) => room.id_rooms);
+
+        if (!roomsInBuilding.includes(contract.id_rooms)) {
+          return false;
+        }
+      }
+
+      // Lọc theo sinh viên
+      if (
+        currentFilters.user !== "all" &&
+        contract.id_users !== parseInt(currentFilters.user)
+      ) {
+        return false;
+      }
+
+      // Lọc theo ngày bắt đầu
+      if (currentFilters.dateFrom) {
+        const fromDate = new Date(currentFilters.dateFrom);
+        if (new Date(contract.start_date) < fromDate) {
+          return false;
+        }
+      }
+
+      // Lọc theo ngày kết thúc
+      if (currentFilters.dateTo) {
+        const toDate = new Date(currentFilters.dateTo);
+        toDate.setHours(23, 59, 59, 999); // Đặt thời gian cuối ngày
+        if (new Date(contract.end_date) > toDate) {
+          return false;
+        }
+      }
+
+      // Lọc theo trạng thái thanh toán
+      if (currentFilters.paymentStatus !== "all") {
+        const paymentStatus = calculatePaymentStatus(contract.id_contracts);
+        if (paymentStatus !== currentFilters.paymentStatus) {
+          return false;
+        }
+      }
+
+      // Nếu qua tất cả các điều kiện, trả về true
+      return true;
+    });
+  };
+
+  // Sử dụng hàm này để gọi khi cần
+  const applyFilters = () => {
+    const filtered = applyFiltersToContracts(contracts, filters);
+    setFilteredContracts(filtered);
+  };
+
+  // Tính toán trạng thái hợp đồng
+  const calculateContractStatus = (contract) => {
+    if (!contract.start_date || !contract.end_date) return "pending";
+
+    const today = new Date();
+    const startDate = new Date(contract.start_date);
+    const endDate = new Date(contract.end_date);
+
+    if (today < startDate) return "pending";
+    if (today > endDate) return "expired";
+    return "active";
+  };
+
+  // Tính toán trạng thái thanh toán
+  const calculatePaymentStatus = (contractId) => {
+    const contractPayments = payments.filter(
+      (p) => p.id_contracts === contractId
+    );
+
+    if (contractPayments.length === 0) return "unpaid";
+
+    const hasUnpaidPayments = contractPayments.some(
+      (p) => p.status === "chua thanh toan"
+    );
+    return hasUnpaidPayments ? "partially_paid" : "paid";
+  };
 
   // Xử lý thêm/sửa hợp đồng
   const handleSubmit = async (formData) => {
@@ -238,9 +361,19 @@ const ContractManagement = () => {
       <ContractFilter
         rooms={rooms}
         users={users}
+        buildings={buildings}
         onFilter={handleFilter}
         initialFilters={filters}
       />
+
+      {/* Hiển thị thông tin về kết quả lọc */}
+      <div className="mb-4 text-sm text-gray-600">
+        Hiển thị {filteredContracts.length} trên tổng số {contracts.length} hợp
+        đồng
+        {filters.searchTerm && (
+          <span> với từ khóa: "{filters.searchTerm}"</span>
+        )}
+      </div>
 
       {/* Form thêm/sửa hợp đồng */}
       {showForm && (
@@ -319,7 +452,7 @@ const ContractManagement = () => {
               onView={() => handleView(contract)}
               onEdit={() => handleEdit(contract)}
               onDelete={() => handleDelete(contract)}
-              onPrint={() => handlePrint(contract)} // Thêm chức năng in
+              onPrint={() => handlePrint(contract)}
             />
           ))}
 

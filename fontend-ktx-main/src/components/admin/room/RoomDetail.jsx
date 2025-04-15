@@ -124,7 +124,10 @@ const RoomDetail = ({ room, building, onClose, onEdit }) => {
           {/* Thêm nút chỉnh sửa và đóng vào header */}
           <div className="mt-4 flex gap-4 justify-center">
             <button
-              onClick={() => onEdit(room)}
+              onClick={() => {
+                onEdit(room);
+                onClose();
+              }}
               className="bg-white text-blue-600 py-2 px-4 rounded-md hover:bg-blue-50 transition-colors flex items-center font-medium"
             >
               <FaEdit className="mr-2" /> Chỉnh sửa phòng

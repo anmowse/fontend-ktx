@@ -135,10 +135,8 @@ const RoomForm = ({ room = null, buildings = [], onSubmit, onCancel }) => {
       newErrors.number = "Số phòng phải là số";
     }
 
-    // Kiểm tra loại phòng
-    if (!formData.type) {
-      newErrors.type = "Vui lòng chọn loại phòng";
-    }
+    // Loại phòng mặc định là 8 giường
+    formData.type = "8 giuong";
 
     // Kiểm tra giá phòng
     if (!formData.price) {
@@ -332,35 +330,6 @@ const RoomForm = ({ room = null, buildings = [], onSubmit, onCancel }) => {
             </p>
           </div>
         )}
-
-        <div className="mb-4">
-          <label
-            className="block text-gray-700 text-sm font-bold mb-2"
-            htmlFor="type"
-          >
-            Loại phòng <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.type
-                ? "border-red-500 focus:ring-red-500"
-                : "focus:ring-blue-500"
-            }`}
-            disabled={isSubmitting}
-          >
-            <option value="">-- Chọn loại phòng --</option>
-            <option value="3 giuong">3 giường</option>
-            <option value="6 giuong">6 giường</option>
-            <option value="8 giuong">8 giường</option>
-          </select>
-          {errors.type && (
-            <p className="text-red-500 text-xs mt-1">{errors.type}</p>
-          )}
-        </div>
 
         <div className="mb-6">
           <label
