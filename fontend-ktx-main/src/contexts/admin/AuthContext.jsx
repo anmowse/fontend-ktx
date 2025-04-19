@@ -3,8 +3,18 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import API_URL from "../../config/api";
 
-// Create the AuthContext
-const AuthContext = createContext();
+// Tạo context với giá trị mặc định để tránh lỗi khi chưa có Provider
+export const AuthContext = createContext({
+  user: null,
+  token: null,
+  loading: false,
+  error: null,
+  isAuthenticated: false,
+  isAdmin: false,
+  login: () => {},
+  logout: () => {},
+  clearError: () => {},
+});
 
 // Custom hook to use the AuthContext
 export const useAuth = () => useContext(AuthContext);
@@ -28,7 +38,9 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
 
         // Set axios default Authorization header
-        axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${storedToken}`;
       }
 
       setLoading(false);
@@ -177,25 +189,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  //   // Register function (if needed)
-  //   const register = async (userData) => {
-  //     setLoading(true);
-  //     setError(null);
-
-  //     try {
-  //       const response = await axios.post(
-  //         "${API_URL}/api/register",
-  //         userData
-  //       );
-  //       setLoading(false);
-  //       return response.data;
-  //     } catch (err) {
-  //       setLoading(false);
-  //       setError("Registration failed. Please try again.");
-  //       throw err;
-  //     }
-  //   };
-
   // Check if current user is admin
   const isAdmin = () => {
     return user && user.role === "Admin";
@@ -216,7 +209,6 @@ export const AuthProvider = ({ children }) => {
     isAdmin: isAdmin(),
     login,
     logout,
-    // register,
     clearError,
   };
 
@@ -230,8 +222,13 @@ export const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
-  const { login, isAuthenticated, loading, error, user, clearError } = useAuth();
+  const auth = useAuth();
   const navigate = useNavigate();
+
+  // Khai báo các giá trị từ auth để tránh lỗi null/undefined
+  const { login, isAuthenticated, loading, error, user } = auth || {};
+  // Tạo một phiên bản clearError an toàn
+  const clearError = auth?.clearError || (() => {});
 
   // Redirect if already logged in
   useEffect(() => {
@@ -242,6 +239,7 @@ export const LoginPage = () => {
         navigate("/user");
       }
     }
+    // Gọi clearError một cách an toàn
     clearError();
   }, [isAuthenticated, user, navigate, clearError]);
 
@@ -451,7 +449,8 @@ export const LoginPage = () => {
 
 // Protected Route component
 export const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const auth = useAuth();
+  const { isAuthenticated, user, loading } = auth || {};
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -486,7 +485,8 @@ export const ProtectedRoute = ({ children, adminOnly = false }) => {
 
 // Header with Logout Button
 export const Header = () => {
-  const { user, logout, loading } = useAuth();
+  const auth = useAuth();
+  const { user, logout, loading } = auth || {};
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 

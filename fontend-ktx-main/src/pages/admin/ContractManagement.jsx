@@ -211,11 +211,51 @@ const ContractManagement = () => {
   const handleSubmit = async (formData) => {
     try {
       if (selectedContract) {
+        // Nếu phòng được thay đổi, cần cập nhật current_occupancy của cả phòng cũ và phòng mới
+        const oldRoomId = selectedContract.id_rooms;
+        const newRoomId = formData.id_rooms;
+
         // Cập nhật hợp đồng
         const response = await axios.put(
           `${API_URL}/contracts/${selectedContract.id_contracts}`,
           formData
         );
+
+        // Nếu có thay đổi phòng
+        if (oldRoomId !== newRoomId) {
+          // Giảm current_occupancy của phòng cũ
+          const oldRoom = rooms.find((r) => r.id_rooms === oldRoomId);
+          if (oldRoom) {
+            await axios.put(`${API_URL}/rooms/${oldRoomId}`, {
+              ...oldRoom,
+              current_occupancy: Math.max(0, oldRoom.current_occupancy - 1),
+            });
+          }
+
+          // Tăng current_occupancy của phòng mới
+          const newRoom = rooms.find((r) => r.id_rooms === newRoomId);
+          if (newRoom) {
+            await axios.put(`${API_URL}/rooms/${newRoomId}`, {
+              ...newRoom,
+              current_occupancy: newRoom.current_occupancy + 1,
+            });
+          }
+
+          // Cập nhật state rooms
+          const updatedRooms = rooms.map((room) => {
+            if (room.id_rooms === oldRoomId) {
+              return {
+                ...room,
+                current_occupancy: Math.max(0, room.current_occupancy - 1),
+              };
+            }
+            if (room.id_rooms === newRoomId) {
+              return { ...room, current_occupancy: room.current_occupancy + 1 };
+            }
+            return room;
+          });
+          setRooms(updatedRooms);
+        }
 
         setContracts(
           contracts.map((c) =>
@@ -228,6 +268,26 @@ const ContractManagement = () => {
         // Thêm hợp đồng mới
         const response = await axios.post(`${API_URL}/contracts`, formData);
 
+        // Cập nhật current_occupancy của phòng được chọn
+        const roomId = formData.id_rooms;
+        const room = rooms.find((r) => r.id_rooms === roomId);
+
+        if (room) {
+          // Cập nhật trong database
+          await axios.put(`${API_URL}/rooms/${roomId}`, {
+            ...room,
+            current_occupancy: room.current_occupancy + 1,
+          });
+
+          // Cập nhật state rooms
+          const updatedRooms = rooms.map((r) =>
+            r.id_rooms === roomId
+              ? { ...r, current_occupancy: r.current_occupancy + 1 }
+              : r
+          );
+          setRooms(updatedRooms);
+        }
+
         setContracts([...contracts, response.data]);
         alert("Thêm hợp đồng mới thành công!");
       }
@@ -235,6 +295,9 @@ const ContractManagement = () => {
       // Reset form
       setSelectedContract(null);
       setShowForm(false);
+
+      // Cập nhật lại danh sách được lọc
+      applyFilters();
     } catch (error) {
       console.error("Error submitting contract:", error);
       alert(error.response?.data?.message || "Đã xảy ra lỗi khi lưu hợp đồng");
@@ -246,6 +309,29 @@ const ContractManagement = () => {
     if (window.confirm(`Bạn có chắc muốn xóa hợp đồng này?`)) {
       try {
         await axios.delete(`${API_URL}/contracts/${contract.id_contracts}`);
+
+        // Giảm current_occupancy của phòng khi xóa hợp đồng
+        const roomId = contract.id_rooms;
+        const room = rooms.find((r) => r.id_rooms === roomId);
+
+        if (room) {
+          // Cập nhật trong database
+          await axios.put(`${API_URL}/rooms/${roomId}`, {
+            ...room,
+            current_occupancy: Math.max(0, room.current_occupancy - 1),
+          });
+
+          // Cập nhật state rooms
+          const updatedRooms = rooms.map((r) =>
+            r.id_rooms === roomId
+              ? {
+                  ...r,
+                  current_occupancy: Math.max(0, r.current_occupancy - 1),
+                }
+              : r
+          );
+          setRooms(updatedRooms);
+        }
 
         setContracts(
           contracts.filter((c) => c.id_contracts !== contract.id_contracts)
@@ -260,6 +346,9 @@ const ContractManagement = () => {
           setShowDetail(false);
           setSelectedContract(null);
         }
+
+        // Cập nhật lại danh sách được lọc
+        applyFilters();
       } catch (error) {
         console.error("Error deleting contract:", error);
         alert(

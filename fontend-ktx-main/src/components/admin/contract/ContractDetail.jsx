@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FaEdit,
   FaPrint,
@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import { format, differenceInMonths } from "date-fns";
 import { vi } from "date-fns/locale";
+import CreatePayment from "../payment/CreatePayment";
 
 const ContractDetail = ({
   contract,
@@ -21,10 +22,11 @@ const ContractDetail = ({
   payments = [],
   services = [],
   contractServices = [],
-  buildings = [], // Thêm buildings vào props
+  buildings = [],
   onClose,
   onEdit,
   onPrint,
+  onCreatePayment, // Thêm prop này nếu muốn xử lý tạo thanh toán ở component cha
 }) => {
   // Format dates
   const formatDate = (dateString) => {
@@ -141,6 +143,17 @@ const ContractDetail = ({
     );
     console.log(building);
     return building ? building.nameBuild : "N/A";
+  };
+
+  const [isCreatePaymentOpen, setIsCreatePaymentOpen] = useState(false);
+
+  const handlePaymentCreated = (newPayment) => {
+    setIsCreatePaymentOpen(false);
+    // Cập nhật danh sách thanh toán nếu cần
+    // Thông báo cho component cha nếu cần
+    if (onCreatePayment) {
+      onCreatePayment(newPayment);
+    }
   };
 
   return (
@@ -359,6 +372,12 @@ const ContractDetail = ({
       {/* Footer with actions - Thu gọn */}
       <div className="bg-gray-50 px-3 py-2 border-t border-gray-200 flex justify-end space-x-2">
         <button
+          onClick={() => setIsCreatePaymentOpen(true)}
+          className="flex items-center px-2.5 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        >
+          <FaMoneyBillWave className="mr-1" /> Tạo khoản thanh toán
+        </button>
+        <button
           onClick={() => onPrint && onPrint(contract)}
           className="flex items-center px-2.5 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
         >
@@ -371,6 +390,39 @@ const ContractDetail = ({
           <FaEdit className="mr-1" /> Sửa
         </button>
       </div>
+
+      {/* Modal tạo khoản thanh toán */}
+      {isCreatePaymentOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Tạo khoản thanh toán mới</h2>
+              <button
+                onClick={() => setIsCreatePaymentOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            <CreatePayment
+              contractId={contract.id_contracts}
+              onSuccess={handlePaymentCreated}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
