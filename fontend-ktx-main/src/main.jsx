@@ -6,7 +6,7 @@ import axios from "axios";
 
 // Cấu hình Axios mặc định
 // axios.defaults.baseURL = "https://nhom9webt4.up.railway.app/api";
-//  axios.defaults.baseURL = "http://127.0.0.1:8000/api";
+axios.defaults.baseURL = "http://127.0.0.1:8000/api";
 
 axios.defaults.headers.common["Accept"] = "application/json";
 
