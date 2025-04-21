@@ -13,7 +13,8 @@ import {
 } from "react-icons/fa";
 import { format, differenceInMonths } from "date-fns";
 import { vi } from "date-fns/locale";
-import CreatePayment from "../payment/CreatePayment";
+import PaymentModal from "../payment/PaymentModal";
+import ManageContractService from "../service/ManageContractService";
 
 const ContractDetail = ({
   contract,
@@ -26,7 +27,7 @@ const ContractDetail = ({
   onClose,
   onEdit,
   onPrint,
-  onCreatePayment, // Thêm prop này nếu muốn xử lý tạo thanh toán ở component cha
+  onCreatePayment,
 }) => {
   // Format dates
   const formatDate = (dateString) => {
@@ -61,7 +62,6 @@ const ContractDetail = ({
 
   const contractStatus = calculateStatus();
 
-  // Render status badge with appropriate color
   const renderStatusBadge = (status) => {
     let bgColor = "bg-gray-100 text-gray-800";
     let statusText = "Không xác định";
@@ -141,19 +141,22 @@ const ContractDetail = ({
     const building = buildings.find(
       (b) => b.id_buildings === room.id_buildings
     );
-    console.log(building);
+    // console.log(building);
     return building ? building.nameBuild : "N/A";
   };
 
   const [isCreatePaymentOpen, setIsCreatePaymentOpen] = useState(false);
+  const [isManageServiceOpen, setIsManageServiceOpen] = useState(false);
 
   const handlePaymentCreated = (newPayment) => {
     setIsCreatePaymentOpen(false);
-    // Cập nhật danh sách thanh toán nếu cần
-    // Thông báo cho component cha nếu cần
     if (onCreatePayment) {
       onCreatePayment(newPayment);
     }
+  };
+
+  const handleServiceUpdated = () => {
+    // Refresh data if needed
   };
 
   return (
@@ -182,12 +185,9 @@ const ContractDetail = ({
         </div>
       </div>
 
-      {/* Content - Giảm padding và gap */}
       <div className="p-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Left column */}
           <div>
-            {/* Student Information - Thu gọn */}
             <div className="mb-4">
               <h3 className="text-base font-semibold mb-2 flex items-center text-gray-700">
                 <FaUser className="mr-1.5 text-sm" />
@@ -252,10 +252,18 @@ const ContractDetail = ({
           <div>
             {/* Contract Details - Thu gọn */}
             <div className="mb-4">
-              <h3 className="text-base font-semibold mb-2 flex items-center text-gray-700">
-                <FaCalendarAlt className="mr-1.5 text-sm" />
-                Chi tiết hợp đồng
-              </h3>
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-semibold mb-2 flex items-center text-gray-700">
+                  <FaCalendarAlt className="mr-1.5 text-sm" />
+                  Chi tiết hợp đồng
+                </h3>
+                <button
+                  onClick={() => setIsManageServiceOpen(true)}
+                  className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center"
+                >
+                  <FaPlug className="mr-1" /> Quản lý dịch vụ
+                </button>
+              </div>
               <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-sm">
                 <div className="mb-2">
                   <div className="flex justify-between">
@@ -307,7 +315,6 @@ const ContractDetail = ({
               </div>
             </div>
 
-            {/* Payment History - Thu gọn */}
             <div>
               <h3 className="text-base font-semibold mb-2 flex items-center text-gray-700">
                 <FaMoneyBillWave className="mr-1.5 text-sm" />
@@ -378,6 +385,12 @@ const ContractDetail = ({
           <FaMoneyBillWave className="mr-1" /> Tạo khoản thanh toán
         </button>
         <button
+          onClick={() => setIsManageServiceOpen(true)}
+          className="flex items-center px-2.5 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          <FaPlug className="mr-1" /> Quản lý dịch vụ
+        </button>
+        <button
           onClick={() => onPrint && onPrint(contract)}
           className="flex items-center px-2.5 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
         >
@@ -391,34 +404,19 @@ const ContractDetail = ({
         </button>
       </div>
 
-      {/* Modal tạo khoản thanh toán */}
-      {isCreatePaymentOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Tạo khoản thanh toán mới</h2>
-              <button
-                onClick={() => setIsCreatePaymentOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
-              </button>
-            </div>
-            <CreatePayment
+      <PaymentModal
+        isOpen={isCreatePaymentOpen}
+        onClose={handlePaymentCreated}
+        contractId={contract.id_contracts}
+      />
+
+      {isManageServiceOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <ManageContractService
               contractId={contract.id_contracts}
-              onSuccess={handlePaymentCreated}
+              onClose={() => setIsManageServiceOpen(false)}
+              onUpdate={handleServiceUpdated}
             />
           </div>
         </div>
