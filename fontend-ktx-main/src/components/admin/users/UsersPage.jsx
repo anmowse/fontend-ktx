@@ -151,7 +151,6 @@ const UsersPage = () => {
             "Lỗi khi cập nhật số người trong phòng:",
             roomUpdateError
           );
-          // Không dừng tiến trình vì user đã được xóa thành công
         }
       }
 

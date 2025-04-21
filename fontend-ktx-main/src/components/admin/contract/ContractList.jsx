@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FaEye,
   FaEdit,
@@ -7,9 +7,12 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaSync,
 } from "react-icons/fa";
 import { format, differenceInMonths } from "date-fns";
 import { vi } from "date-fns/locale";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const ContractList = ({
   contracts = [],
@@ -22,6 +25,13 @@ const ContractList = ({
   onDelete,
   onPrint,
 }) => {
+  // State cho dữ liệu
+  const [localContracts, setLocalContracts] = useState(contracts);
+  const [localRooms, setLocalRooms] = useState(rooms);
+  const [localUsers, setLocalUsers] = useState(users);
+  const [localPayments, setLocalPayments] = useState(payments);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // State for sorting
   const [sortConfig, setSortConfig] = useState({
     key: "id_contracts",
@@ -31,6 +41,75 @@ const ContractList = ({
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Cập nhật state local khi props thay đổi
+  useEffect(() => {
+    setLocalContracts(contracts);
+  }, [contracts]);
+
+  useEffect(() => {
+    setLocalRooms(rooms);
+  }, [rooms]);
+
+  useEffect(() => {
+    setLocalUsers(users);
+  }, [users]);
+
+  useEffect(() => {
+    setLocalPayments(payments);
+  }, [payments]);
+
+  // Hàm refresh dữ liệu - Sửa để chỉ hiển thị thông báo khi được gọi sau các thao tác CRUD
+  const refreshData = async (showNotification = false) => {
+    setIsRefreshing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Fetch dữ liệu từ server
+      const [contractsRes, roomsRes, usersRes, paymentsRes] = await Promise.all(
+        [
+          axios.get("http://127.0.0.1:8000/api/contracts", { headers }),
+          axios.get("http://127.0.0.1:8000/api/rooms", { headers }),
+          axios.get("http://127.0.0.1:8000/api/users", { headers }),
+          axios.get("http://127.0.0.1:8000/api/payments", { headers }),
+        ]
+      );
+
+      // Cập nhật state local
+      setLocalContracts(contractsRes.data);
+      setLocalRooms(roomsRes.data);
+      setLocalUsers(usersRes.data);
+      setLocalPayments(paymentsRes.data);
+    } catch (error) {
+      console.error("Lỗi khi refresh dữ liệu:", error);
+      if (showNotification) {
+        toast.error("Không thể cập nhật dữ liệu. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Tạo event listener để lắng nghe sự kiện cập nhật dữ liệu
+  useEffect(() => {
+    const handleDataChanged = () => {
+      console.log("Data change detected, refreshing contract list data");
+      // Hiện thông báo chỉ khi được gọi từ sự kiện thay đổi dữ liệu
+      refreshData(true);
+    };
+
+    // Đăng ký event listener
+    window.addEventListener("contract-data-changed", handleDataChanged);
+
+    // Chỉ refresh dữ liệu lần đầu mà không hiển thị thông báo
+    refreshData(false);
+
+    // Cleanup khi component unmount
+    return () => {
+      window.removeEventListener("contract-data-changed", handleDataChanged);
+    };
+  }, []);
 
   // Format date helper
   const formatDate = (dateString) => {
@@ -51,8 +130,10 @@ const ContractList = ({
   };
 
   // Get room and user information
-  const getRoom = (roomId) => rooms.find((r) => r.id_rooms === roomId) || {};
-  const getUser = (userId) => users.find((u) => u.id_users === userId) || {};
+  const getRoom = (roomId) =>
+    localRooms.find((r) => r.id_rooms === roomId) || {};
+  const getUser = (userId) =>
+    localUsers.find((u) => u.id_users === userId) || {};
 
   // Calculate contract status based on dates
   const calculateStatus = (contract) => {
@@ -69,7 +150,7 @@ const ContractList = ({
 
   // Calculate payment status based on payments
   const getPaymentStatus = (contractId) => {
-    const contractPayments = payments.filter(
+    const contractPayments = localPayments.filter(
       (p) => p.id_contracts === contractId
     );
 
@@ -92,7 +173,7 @@ const ContractList = ({
 
   // Get sorted data
   const sortedContracts = useMemo(() => {
-    const sortableContracts = [...contracts];
+    const sortableContracts = [...localContracts];
 
     sortableContracts.sort((a, b) => {
       let aValue, bValue;
@@ -132,7 +213,7 @@ const ContractList = ({
     });
 
     return sortableContracts;
-  }, [contracts, sortConfig, rooms, users]);
+  }, [localContracts, sortConfig, localRooms, localUsers]);
 
   // Get current page data
   const paginatedContracts = useMemo(() => {
@@ -142,6 +223,31 @@ const ContractList = ({
 
   // Total pages
   const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
+
+  // Xử lý view contract với refresh
+  const handleView = (contract) => {
+    refreshData(); // Refresh data before viewing
+    if (onView) onView(contract);
+  };
+
+  // Xử lý edit contract với refresh
+  const handleEdit = (contract) => {
+    if (onEdit) onEdit(contract);
+  };
+
+  // Xử lý delete contract với refresh
+  const handleDelete = async (contract) => {
+    if (onDelete) {
+      onDelete(contract);
+      // Refresh data after deletion
+      setTimeout(() => refreshData(true), 500);
+    }
+  };
+
+  // Xử lý print contract
+  const handlePrint = (contract) => {
+    if (onPrint) onPrint(contract);
+  };
 
   // Render sort icon
   const renderSortIcon = (key) => {
@@ -184,6 +290,20 @@ const ContractList = ({
 
   return (
     <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      <div className="p-3 border-b flex justify-between items-center">
+        <h3 className="text-sm font-medium text-gray-700">
+          Danh sách hợp đồng
+        </h3>
+        <button
+          onClick={() => refreshData(true)} // Hiện thông báo khi người dùng chủ động refresh
+          className="text-blue-600 hover:text-blue-800 flex items-center text-xs px-2 py-1 rounded-md hover:bg-blue-50"
+          disabled={isRefreshing}
+        >
+          <FaSync className={`mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
+          {isRefreshing ? "Đang tải..." : "Tải lại dữ liệu"}
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -280,14 +400,14 @@ const ContractList = ({
                   <td className="px-3 py-2 whitespace-nowrap text-right">
                     <div className="flex justify-end space-x-1.5">
                       <button
-                        onClick={() => onView(contract)}
+                        onClick={() => handleView(contract)}
                         className="text-blue-600 hover:text-blue-900 p-1"
                         title="Xem chi tiết"
                       >
                         <FaEye className="text-xs" />
                       </button>
                       <button
-                        onClick={() => onEdit(contract)}
+                        onClick={() => handleEdit(contract)}
                         className="text-yellow-600 hover:text-yellow-900 p-1"
                         title="Chỉnh sửa"
                       >
@@ -295,7 +415,7 @@ const ContractList = ({
                       </button>
                       {onPrint && (
                         <button
-                          onClick={() => onPrint(contract)}
+                          onClick={() => handlePrint(contract)}
                           className="text-green-600 hover:text-green-900 p-1"
                           title="In hợp đồng"
                         >
@@ -303,7 +423,7 @@ const ContractList = ({
                         </button>
                       )}
                       <button
-                        onClick={() => onDelete(contract)}
+                        onClick={() => handleDelete(contract)}
                         className="text-red-600 hover:text-red-900 p-1"
                         title="Xóa"
                       >

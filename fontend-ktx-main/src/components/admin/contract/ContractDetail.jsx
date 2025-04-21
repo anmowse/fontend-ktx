@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaEdit,
   FaPrint,
@@ -28,6 +28,7 @@ const ContractDetail = ({
   onEdit,
   onPrint,
   onCreatePayment,
+  onUpdateServices,
 }) => {
   // Format dates
   const formatDate = (dateString) => {
@@ -156,8 +157,30 @@ const ContractDetail = ({
   };
 
   const handleServiceUpdated = () => {
-    // Refresh data if needed
+    // Gọi callback đến component cha để cập nhật dịch vụ
+    if (onUpdateServices) {
+      onUpdateServices();
+    }
   };
+
+  // Lắng nghe sự kiện cập nhật dữ liệu
+  useEffect(() => {
+    const handleDataChanged = () => {
+      // Refresh thông tin hợp đồng, dịch vụ, thanh toán
+      if (onUpdateServices) {
+        onUpdateServices();
+      }
+      if (onCreatePayment) {
+        onCreatePayment();
+      }
+    };
+
+    window.addEventListener("contract-data-changed", handleDataChanged);
+
+    return () => {
+      window.removeEventListener("contract-data-changed", handleDataChanged);
+    };
+  }, [onUpdateServices, onCreatePayment]);
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-3xl transform scale-95 origin-top">

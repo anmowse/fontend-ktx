@@ -7,6 +7,7 @@ import ContractDetail from "../../components/admin/contract/ContractDetail";
 import ContractCard from "../../components/admin/contract/ContractCard";
 import { FaPlus } from "react-icons/fa";
 import API_URL from "../../config/api";
+import { toast } from "react-toastify";
 
 const ContractManagement = () => {
   // State cho dữ liệu
@@ -263,7 +264,7 @@ const ContractManagement = () => {
           )
         );
 
-        alert("Cập nhật hợp đồng thành công!");
+        toast.success("Cập nhật hợp đồng thành công!");
       } else {
         // Thêm hợp đồng mới
         const response = await axios.post(`${API_URL}/contracts`, formData);
@@ -289,14 +290,15 @@ const ContractManagement = () => {
         }
 
         setContracts([...contracts, response.data]);
-        alert("Thêm hợp đồng mới thành công!");
+        toast.success("Thêm hợp đồng mới thành công!");
       }
 
-      // Reset form
+      // Kích hoạt sự kiện cập nhật dữ liệu
+      window.dispatchEvent(new Event("contract-data-changed"));
+
+      // Reset form và cập nhật UI
       setSelectedContract(null);
       setShowForm(false);
-
-      // Cập nhật lại danh sách được lọc
       applyFilters();
     } catch (error) {
       console.error("Error submitting contract:", error);
@@ -337,7 +339,10 @@ const ContractManagement = () => {
           contracts.filter((c) => c.id_contracts !== contract.id_contracts)
         );
 
-        alert("Xóa hợp đồng thành công!");
+        toast.success("Xóa hợp đồng thành công!");
+
+        // Kích hoạt sự kiện cập nhật dữ liệu
+        window.dispatchEvent(new Event("contract-data-changed"));
 
         if (
           showDetail &&

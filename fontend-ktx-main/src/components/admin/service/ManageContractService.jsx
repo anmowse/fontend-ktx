@@ -90,9 +90,14 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
         }
       );
 
+      // Thông báo thành công và kích hoạt cập nhật dữ liệu
       toast.success("Thêm dịch vụ thành công!");
-      fetchContractServices();
+      await fetchContractServices();
       setSelectedService("");
+
+      // Kích hoạt sự kiện cập nhật dữ liệu khắp ứng dụng
+      window.dispatchEvent(new Event("contract-data-changed"));
+
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Lỗi khi thêm dịch vụ:", error);
@@ -116,8 +121,12 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
       );
 
       toast.success("Xóa dịch vụ thành công!");
-      fetchContractServices();
-      if (onUpdate) onUpdate();
+      await fetchContractServices(); // Đảm bảo dữ liệu mới nhất
+
+      // Kích hoạt sự kiện cập nhật dữ liệu
+      window.dispatchEvent(new Event("contract-data-changed"));
+
+      if (onUpdate) onUpdate(); // Thông báo cho component cha
     } catch (error) {
       console.error("Lỗi khi xóa dịch vụ:", error);
       toast.error("Không thể xóa dịch vụ. Vui lòng thử lại sau.");

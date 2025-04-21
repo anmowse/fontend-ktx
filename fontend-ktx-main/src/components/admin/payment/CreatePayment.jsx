@@ -184,7 +184,11 @@ const CreatePayment = ({ onSuccess, contractId = null }) => {
         }
       );
 
+      // Hiển thị thông báo thành công sau khi thêm mới thành công
       toast.success("Tạo khoản thanh toán thành công!");
+
+      // Kích hoạt sự kiện cập nhật dữ liệu
+      window.dispatchEvent(new Event("contract-data-changed"));
 
       setFormData({
         id_contracts: contractId || "",
