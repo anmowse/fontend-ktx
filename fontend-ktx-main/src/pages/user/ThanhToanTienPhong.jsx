@@ -8,81 +8,73 @@ import './XemHopDong.css';
 const ThanhToanTienPhong = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchId, setSearchId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [paymentDetails, setPaymentDetails] = useState({});
+  const [payingId, setPayingId] = useState(null);
+  const [success, setSuccess] = useState('');
+  const [currentContract, setCurrentContract] = useState(null);
+  const [checkingContract, setCheckingContract] = useState(true);
 
-  // Tự động lấy dữ liệu khi component được mount và user đã đăng nhập
+  // Lấy hợp đồng hiện tại của user
   useEffect(() => {
-    if (user?.id_users) {
-      fetchPayments(user.id_users);
-    }
+    const fetchCurrentContract = async () => {
+      setCheckingContract(true);
+      try {
+        if (!user?.id_users) {
+          setCurrentContract(null);
+          setCheckingContract(false);
+          return;
+        }
+        const res = await axios.get(`${API_URL}/users/${user.id_users}/contracts`);
+        let contracts = res.data;
+        console.log('Danh sách hợp đồng:', contracts);
+        if (!Array.isArray(contracts)) contracts = [contracts];
+        const today = new Date();
+        let validContract = contracts.find(c => new Date(c.end_date) > today);
+        if (!validContract && contracts.length > 0) validContract = contracts[0];
+        const finalContract = validContract && new Date(validContract.end_date) > today ? validContract : null;
+        console.log('Hợp đồng hiện tại:', finalContract);
+        setCurrentContract(finalContract);
+      } catch (err) {
+        console.error('Lỗi khi lấy hợp đồng:', err);
+        setCurrentContract(null);
+      } finally {
+        setCheckingContract(false);
+      }
+    };
+    fetchCurrentContract();
   }, [user]);
 
-  // Hàm xử lý tìm kiếm
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchId.trim()) {
-      setError('Vui lòng nhập mã sinh viên');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get(`${API_URL}/users/${searchId}/payments`);
-      if (response.data) {
-        setPayments(response.data);
-        await fetchPaymentDetails(response.data);
-      } else {
+  // Lấy danh sách hóa đơn của hợp đồng hiện tại
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!user?.id_users) {
+        console.log('Không có user:', user);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('Đang lấy hóa đơn cho user:', user.id_users);
+        const response = await axios.get(`${API_URL}/users/${user.id_users}/payments`);
+        console.log('Kết quả hóa đơn thô:', response.data);
+        if (response.data) {
+          setPayments(response.data);
+        } else {
+          setPayments([]);
+          setError('Không tìm thấy thông tin thanh toán.');
+        }
+      } catch (err) {
+        console.error('Lỗi khi lấy hóa đơn:', err);
+        setError('Không thể tải thông tin thanh toán. Vui lòng thử lại sau.');
         setPayments([]);
-        setError('Không tìm thấy thông tin thanh toán cho mã sinh viên này');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching payments:', err);
-      setError('Không thể tải thông tin thanh toán. Vui lòng thử lại sau.');
-      setPayments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Hàm lấy danh sách thanh toán
-  const fetchPayments = async (userId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get(`${API_URL}/users/${userId}/payments`);
-      if (response.data) {
-        setPayments(response.data);
-        // Lấy chi tiết cho mỗi khoản thanh toán
-        await fetchPaymentDetails(response.data);
-      }
-    } catch (err) {
-      console.error('Error fetching payments:', err);
-      setError('Không thể tải thông tin thanh toán. Vui lòng thử lại sau.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Hàm lấy chi tiết thanh toán
-  const fetchPaymentDetails = async (payments) => {
-    try {
-      const details = {};
-      await Promise.all(
-        payments.map(async (payment) => {
-          const response = await axios.get(`${API_URL}/payment-details/${payment.id_payments}`);
-          details[payment.id_payments] = response.data;
-        })
-      );
-      setPaymentDetails(details);
-    } catch (err) {
-      console.error('Error fetching payment details:', err);
-    }
-  };
+    };
+    fetchPayments();
+  }, [user]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -95,19 +87,6 @@ const ThanhToanTienPhong = () => {
       style: 'currency',
       currency: 'VND'
     }).format(amount || 0);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-      case 'da thanh toan':
-        return 'text-green-600 bg-green-100';
-      case 'unpaid':
-      case 'chua thanh toan':
-        return 'text-red-600 bg-red-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
   };
 
   const getStatusText = (status) => {
@@ -123,98 +102,89 @@ const ThanhToanTienPhong = () => {
     }
   };
 
+  // Xử lý thanh toán hóa đơn
+  const handlePay = async (id) => {
+    setPayingId(id);
+    setSuccess('');
+    try {
+      await axios.put(`${API_URL}/payments/${id}`, { status: 'da thanh toan' });
+      setSuccess('Thanh toán thành công!');
+      // Reload lại danh sách hóa đơn
+      const response = await axios.get(`${API_URL}/users/${user.id_users}/payments`);
+      if (response.data) {
+        // Lọc hóa đơn theo hợp đồng hiện tại
+        const contractPayments = response.data.filter(payment => 
+          payment.number === currentContract.number
+        );
+        setPayments(contractPayments);
+      }
+    } catch (err) {
+      setError('Không thể thanh toán hóa đơn. Vui lòng thử lại.');
+    } finally {
+      setPayingId(null);
+    }
+  };
+
+  // Map tên trường sang tiếng Việt có dấu
+  const fieldMap = {
+    id_payments: 'Mã thanh toán',
+    name: 'Tên sinh viên',
+    number: 'Số phòng',
+    amount: 'Tổng số tiền',
+    due_date: 'Hạn thanh toán',
+  };
+
+  // Lấy danh sách các trường cần hiển thị (không bao gồm status và amountPay)
+  const displayFields = Object.keys(payments[0] || {}).filter(key => key !== 'status' && key !== 'amountPay');
+
   return (
     <div className="payment-container">
       <h2>THANH TOÁN TIỀN PHÒNG</h2>
-
-      {/* Form tìm kiếm */}
-      <div className="search-form">
-        <form onSubmit={handleSearch}>
-          <input
-            type="text"
-            value={searchId}
-            onChange={(e) => setSearchId(e.target.value)}
-            placeholder="Nhập mã sinh viên"
-            className="w-full p-3 border rounded-md"
-          />
-            <div className="ml-4">
-            <button type="submit"
-                        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 min-w-[140px]">
-            Tìm kiếm
-          </button>
-
-            </div>
-          
-        </form>
-      </div>
-
+      {success && <div className="message success">{success}</div>}
       {loading ? (
         <div className="loading-spinner">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : error ? (
-        <div className="error-message">
-          {error}
-        </div>
+        <div className="error-message">{error}</div>
       ) : payments.length === 0 ? (
-        <div className="message">
-          {searchId ? 'Không tìm thấy hóa đơn thanh toán cho mã sinh viên này' : 'Vui lòng nhập mã sinh viên để tìm kiếm'}
-        </div>
+        <div className="message">Bạn chưa có hóa đơn thanh toán nào.</div>
       ) : (
         <div className="payment-list">
-          {payments.map((payment) => (
-            <div key={payment.id_payments} className="payment-item">
-              <div className="payment-header">
-                <h3>Hóa đơn #{payment.id_payments}</h3>
-                <span className={`payment-status ${payment.status?.toLowerCase() === 'da thanh toan' ? 'paid' : 'unpaid'}`}>
-                  {getStatusText(payment.status)}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-gray-600">Kỳ thanh toán:</span>
-                  <span className="ml-2 font-medium">
-                    {formatDate(payment.payment_date)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Hạn thanh toán:</span>
-                  <span className="ml-2 font-medium">
-                    {formatDate(payment.due_date)}
-                  </span>
-                </div>
-              </div>
-
-              {paymentDetails[payment.id_payments] && (
-                <div className="payment-details">
-                  <h4 className="font-semibold mb-2">Chi tiết thanh toán:</h4>
-                  <div className="space-y-2">
-                    {paymentDetails[payment.id_payments].map((detail, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <span>{detail.description}</span>
-                        <span className="font-medium">{formatCurrency(detail.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="payment-total">
-                    <span>Tổng cộng:</span>
-                    <span className="text-lg">
-                      {formatCurrency(payment.amount)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {payment.status?.toLowerCase() === 'chua thanh toan' && (
-                <div className="mt-4">
-                  <button className="payment-button w-full">
-                    Thanh toán ngay
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+          <table className="min-w-full bg-white">
+            <thead>
+              <tr>
+                {displayFields.map((key) => (
+                  <th key={key} className="py-2 px-4 border-b">{fieldMap[key] || key}</th>
+                ))}
+                <th className="py-2 px-4 border-b">Trạng thái</th>
+                <th className="py-2 px-4 border-b"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((payment, idx) => (
+                <tr key={idx}>
+                  {displayFields.map((key) => (
+                    <td key={key} className="py-2 px-4 border-b text-center">
+                      {key === 'amount' ? formatCurrency(payment[key]) : key === 'due_date' ? formatDate(payment[key]) : payment[key]}
+                    </td>
+                  ))}
+                  <td className="py-2 px-4 border-b text-center">{getStatusText(payment.status)}</td>
+                  <td className="py-2 px-4 border-b text-center">
+                    {payment.status?.toLowerCase() === 'chua thanh toan' ? (
+                      <button
+                        className="payment-button bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700"
+                        onClick={() => handlePay(payment.id_payments)}
+                        disabled={payingId === payment.id_payments}
+                      >
+                        {payingId === payment.id_payments ? 'Đang xử lý...' : 'Thanh toán'}
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
