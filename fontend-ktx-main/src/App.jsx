@@ -24,6 +24,7 @@ import XemHopDong from "./pages/user/XemHopDong";
 import GiaHanHopDong from "./pages/user/GiaHanHopDong";
 import ContractDetail from "./components/admin/contract/ContractDetail";
 import Welcome from "./pages/user/Welcome";
+import Setting from "./pages/user/Setting";
 
 function App() {
   return (
@@ -210,6 +211,7 @@ function App() {
               path="extend-contract/:contractId"
               element={<GiaHanHopDong />}
             />
+            <Route path="settings" element={<Setting />} />
           </Route>
 
           {/* Route bắt tất cả các đường dẫn khác */}

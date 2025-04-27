@@ -31,19 +31,11 @@ const Sidebar = () => {
           </Link>
         </div>
         <div className="menu-item">
-          <Link to="/user/thanh-toan-tien-dien">
-            <i className="fas fa-bolt"></i>
-            Thanh toán tiền điện
+          <Link to="/user/settings">
+            <i className="fas fa-cog"></i>
+            Cài đặt tài khoản
           </Link>
         </div>
-        <div className="menu-item">
-          <Link to="/user/thanh-toan-tien-nuoc">
-            <i className="fas fa-tint"></i>
-            Thanh toán tiền nước
-          </Link>
-        </div>
-        
-       
       </div>
     </div>
   );
