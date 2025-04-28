@@ -184,6 +184,7 @@ const ContractDetail = ({
       window.removeEventListener("contract-data-changed", handleDataChanged);
     };
   }, [onUpdateServices, onCreatePayment]);
+  console.log(servicesForContract);
 
   return (
     //overflow-hidden
@@ -284,12 +285,6 @@ const ContractDetail = ({
                   <FaCalendarAlt className="mr-1.5 text-sm" />
                   Chi tiết hợp đồng
                 </h3>
-                <button
-                  onClick={() => setIsManageServiceOpen(true)}
-                  className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center"
-                >
-                  <FaPlug className="mr-1" /> Quản lý dịch vụ
-                </button>
               </div>
               <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-sm">
                 <div className="mb-2">
@@ -416,7 +411,6 @@ const ContractDetail = ({
         </div>
       </div>
 
-      {/* Footer with actions - Thu gọn */}
       <div className="bg-gray-50 px-3 py-2 border-t border-gray-200 flex justify-end space-x-2">
         <button
           onClick={() => setIsCreatePaymentOpen(true)}
@@ -424,12 +418,7 @@ const ContractDetail = ({
         >
           <FaMoneyBillWave className="mr-1" /> Tạo khoản thanh toán
         </button>
-        <button
-          onClick={() => setIsManageServiceOpen(true)}
-          className="flex items-center px-2.5 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          <FaPlug className="mr-1" /> Quản lý dịch vụ
-        </button>
+
         <button
           onClick={() => onPrint && onPrint(contract)}
           className="flex items-center px-2.5 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"

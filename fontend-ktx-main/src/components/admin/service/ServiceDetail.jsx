@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 const ServiceDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [service, setService] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [contracts, setContracts] = useState([]);
@@ -14,13 +15,16 @@ const ServiceDetail = () => {
     nameService: "",
     priceService: "",
   });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchServiceData();
+    // eslint-disable-next-line
   }, [id]);
 
   const fetchServiceData = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
 
       // Lấy thông tin dịch vụ
@@ -40,7 +44,7 @@ const ServiceDetail = () => {
           priceService: serviceResponse.data.priceService,
         });
 
-        // Lấy thông tin các phòng sử dụng dịch vụ này
+        // Lấy thông tin các hợp đồng sử dụng dịch vụ này
         const contractServiceResponse = await axios.get(
           `http://127.0.0.1:8000/api/contract-service?service_id=${id}`,
           {
@@ -50,6 +54,8 @@ const ServiceDetail = () => {
           }
         );
 
+        let filteredContracts = [];
+        let filteredRooms = [];
         if (
           contractServiceResponse.data &&
           contractServiceResponse.data.length > 0
@@ -68,10 +74,9 @@ const ServiceDetail = () => {
             }
           );
 
-          const filteredContracts = contractsResponse.data.filter((contract) =>
+          filteredContracts = contractsResponse.data.filter((contract) =>
             contractIds.includes(contract.id_contracts)
           );
-
           setContracts(filteredContracts);
 
           // Lấy ID phòng từ các hợp đồng
@@ -89,11 +94,13 @@ const ServiceDetail = () => {
             }
           );
 
-          const filteredRooms = roomsResponse.data.filter((room) =>
+          filteredRooms = roomsResponse.data.filter((room) =>
             roomIds.includes(room.id_rooms)
           );
-
           setRooms(filteredRooms);
+        } else {
+          setContracts([]);
+          setRooms([]);
         }
       }
 
@@ -134,6 +141,41 @@ const ServiceDetail = () => {
     } catch (error) {
       console.error("Lỗi khi cập nhật dịch vụ:", error);
       toast.error("Không thể cập nhật dịch vụ. Vui lòng thử lại sau.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn xóa dịch vụ này? Dịch vụ sẽ bị xóa khỏi hệ thống!"
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Kiểm tra nếu còn hợp đồng/phòng sử dụng thì không cho xóa
+      if (contracts.length > 0) {
+        toast.error(
+          "Không thể xóa dịch vụ khi vẫn còn hợp đồng/phòng sử dụng."
+        );
+        setDeleting(false);
+        return;
+      }
+
+      await axios.delete(`http://127.0.0.1:8000/api/services/${id}`, {
+        headers,
+      });
+
+      toast.success("Đã xóa dịch vụ thành công!");
+      navigate("/services");
+    } catch (error) {
+      toast.error("Không thể xóa dịch vụ. Vui lòng thử lại sau.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -180,12 +222,21 @@ const ServiceDetail = () => {
         <h1 className="text-3xl font-bold text-gray-800">
           Chi tiết dịch vụ: {service.nameService}
         </h1>
-        <Link
-          to="/services"
-          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-        >
-          Quay lại danh sách
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/services"
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Quay lại danh sách
+          </Link>
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={deleting}
+          >
+            {deleting ? "Đang xóa..." : "Xóa dịch vụ"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -301,9 +352,6 @@ const ServiceDetail = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Số người hiện tại
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -320,14 +368,6 @@ const ServiceDetail = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {room.current_occupancy}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link
-                        to={`/rooms/${room.id_rooms}`}
-                        className="text-blue-500 hover:underline"
-                      >
-                        Xem chi tiết
-                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -362,9 +402,6 @@ const ServiceDetail = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày kết thúc
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -386,14 +423,6 @@ const ServiceDetail = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(contract.end_date).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link
-                        to={`/contracts/${contract.id_contracts}`}
-                        className="text-blue-500 hover:underline"
-                      >
-                        Xem chi tiết
-                      </Link>
                     </td>
                   </tr>
                 ))}

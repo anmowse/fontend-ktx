@@ -24,23 +24,27 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Lấy danh sách tất cả dịch vụ
-        const servicesRes = await axios.get(
-          "http://127.0.0.1:8000/api/services",
-          { headers }
+        // Sử dụng Promise.all để gọi cả hai API đồng thời
+        const [servicesRes, allContractServicesRes] = await Promise.all([
+          axios.get("http://127.0.0.1:8000/api/services", { headers }),
+          axios.get("http://127.0.0.1:8000/api/contract-service", { headers }),
+        ]);
+
+        // Lọc dịch vụ theo contractId, đảm bảo sử dụng so sánh đúng kiểu dữ liệu
+        const contractServicesData = allContractServicesRes.data.filter(
+          (cs) => String(cs.id_contracts) === String(contractId)
         );
 
-        // Lấy tất cả contract-service từ API và lọc theo contractId
-        const allContractServicesRes = await axios.get(
-          "http://127.0.0.1:8000/api/contract-service",
-          { headers }
+        // Log thông tin để debug
+        console.log("Contract ID:", contractId, "Loại:", typeof contractId);
+        console.log(
+          "Tổng số contract services:",
+          allContractServicesRes.data.length
         );
-        const contractServicesData = allContractServicesRes.data.filter(
-          (cs) => cs.id_contracts == contractId
-        );
+        console.log("Số dịch vụ đã lọc:", contractServicesData.length);
 
         // Ánh xạ các trường nameService và priceService sang service_name và service_price
-        // để phù hợp với CreatePayment.jsx
+        // để đảm bảo sự nhất quán trong toàn bộ component
         const mappedServices = servicesRes.data.map((service) => ({
           ...service,
           service_name: service.nameService,
@@ -50,9 +54,21 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
         setServices(mappedServices);
         setContractServices(contractServicesData);
       } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Không thể tải dữ liệu dịch vụ");
-        // Đảm bảo setServices và setContractServices được gọi để tránh lỗi
+        console.error("Lỗi khi tải dữ liệu:", error);
+        if (error.response) {
+          console.error("Phản hồi từ server:", error.response.data);
+          toast.error(
+            `Lỗi: ${
+              error.response.data.message || "Không thể tải dữ liệu dịch vụ"
+            }`
+          );
+        } else if (error.request) {
+          toast.error(
+            "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+          );
+        } else {
+          toast.error("Đã xảy ra lỗi khi xử lý yêu cầu.");
+        }
         setServices([]);
         setContractServices([]);
       } finally {
@@ -60,7 +76,9 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
       }
     };
 
-    fetchData();
+    if (contractId) {
+      fetchData();
+    }
   }, [contractId]);
 
   const addService = async () => {
@@ -73,7 +91,7 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
 
       // Kiểm tra xem dịch vụ đã tồn tại trong hợp đồng chưa
       const isDuplicate = contractServices.some(
-        (cs) => cs.id_service == selectedService
+        (cs) => String(cs.id_service) === String(selectedService)
       );
 
       if (isDuplicate) {
@@ -92,21 +110,25 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
         { headers }
       );
 
-      // Làm mới danh sách dịch vụ của hợp đồng bằng cách lấy tất cả và lọc
+      // Làm mới danh sách dịch vụ của hợp đồng
       const allContractServicesRes = await axios.get(
         "http://127.0.0.1:8000/api/contract-service",
         { headers }
       );
       const contractServicesData = allContractServicesRes.data.filter(
-        (cs) => cs.id_contracts == contractId
+        (cs) => String(cs.id_contracts) === String(contractId)
       );
 
       setContractServices(contractServicesData);
       setSelectedService("");
       toast.success("Thêm dịch vụ thành công");
 
-      // Notify parent
+      // Thông báo cho component cha cập nhật
       if (onUpdate) onUpdate();
+
+      // Dispatch event để các component khác cũng nhận được thông báo
+      const event = new CustomEvent("contract-data-changed");
+      window.dispatchEvent(event);
     } catch (error) {
       console.error("Lỗi khi thêm dịch vụ:", error);
       toast.error("Không thể thêm dịch vụ. Vui lòng thử lại sau.");
@@ -126,15 +148,19 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
         { headers }
       );
 
-      // Update local state
+      // Cập nhật state local
       setContractServices((prev) =>
         prev.filter((cs) => cs.id_Cont_Ser !== contractServiceId)
       );
 
       toast.success("Xóa dịch vụ thành công");
 
-      // Notify parent
+      // Thông báo cho component cha
       if (onUpdate) onUpdate();
+
+      // Dispatch event để các component khác cũng nhận được thông báo
+      const event = new CustomEvent("contract-data-changed");
+      window.dispatchEvent(event);
     } catch (error) {
       console.error("Lỗi khi xóa dịch vụ:", error);
       toast.error("Không thể xóa dịch vụ. Vui lòng thử lại sau.");
@@ -143,19 +169,65 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
     }
   };
 
-  // Cập nhật hàm getServiceIcon để sử dụng service_name thay vì nameService
+  // Cập nhật hàm getServiceIcon để xử lý nhiều từ khóa hơn và luôn có icon mặc định
   const getServiceIcon = (serviceName) => {
-    if (!serviceName) return null;
+    if (!serviceName)
+      return (
+        <div className="w-2 h-2 rounded-full bg-blue-400 mr-1 flex-shrink-0"></div>
+      );
 
     const name = serviceName.toLowerCase();
-    if (name.includes("internet") || name.includes("wifi"))
+
+    // Dịch vụ Internet/Wifi
+    if (
+      name.includes("internet") ||
+      name.includes("wifi") ||
+      name.includes("mạng") ||
+      name.includes("mang")
+    )
       return <FaWifi className="text-blue-500" />;
-    if (name.includes("dien") || name.includes("nuoc"))
+
+    // Dịch vụ điện/nước
+    if (
+      name.includes("dien") ||
+      name.includes("điện") ||
+      name.includes("nuoc") ||
+      name.includes("nước") ||
+      name.includes("điêu hòa") ||
+      name.includes("dieu hoa") ||
+      name.includes("thiet bi") ||
+      name.includes("thiết bị")
+    )
       return <FaPlug className="text-yellow-500" />;
-    if (name.includes("xe") || name.includes("giu"))
+
+    // Dịch vụ giữ xe
+    if (
+      name.includes("xe") ||
+      name.includes("giu xe") ||
+      name.includes("giữ xe") ||
+      name.includes("bai") ||
+      name.includes("bãi") ||
+      name.includes("đỗ") ||
+      name.includes("do") ||
+      name.includes("đậu")
+    )
       return <FaCar className="text-green-500" />;
-    if (name.includes("rac")) return <FaTrashAlt className="text-gray-500" />;
-    return null;
+
+    // Dịch vụ vệ sinh/xử lý rác
+    if (
+      name.includes("rac") ||
+      name.includes("rác") ||
+      name.includes("ve sinh") ||
+      name.includes("vệ sinh") ||
+      name.includes("dọn") ||
+      name.includes("don")
+    )
+      return <FaTrashAlt className="text-gray-500" />;
+
+    // Dịch vụ khác
+    return (
+      <div className="w-2 h-2 rounded-full bg-blue-400 mr-1 flex-shrink-0"></div>
+    );
   };
 
   const formatCurrency = (amount) => {
@@ -186,7 +258,7 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
           <ul className="mb-4">
             {contractServices.map((cs) => {
               const service = services.find(
-                (s) => s.id_service == cs.id_service
+                (s) => String(s.id_service) === String(cs.id_service)
               );
               if (!service) return null;
 
@@ -240,14 +312,34 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
               className="flex-grow rounded-md border border-gray-300 shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">-- Chọn dịch vụ --</option>
-              {services.map((service) => (
-                <option key={service.id_service} value={service.id_service}>
-                  {service.service_name || service.nameService} -{" "}
-                  {formatCurrency(
-                    service.service_price || service.priceService
-                  )}
+              {services
+                // Lọc ra các dịch vụ chưa được thêm
+                .filter(
+                  (service) =>
+                    !contractServices.some(
+                      (cs) =>
+                        String(cs.id_service) === String(service.id_service)
+                    )
+                )
+                .map((service) => (
+                  <option key={service.id_service} value={service.id_service}>
+                    {service.service_name || service.nameService} -{" "}
+                    {formatCurrency(
+                      service.service_price || service.priceService
+                    )}
+                  </option>
+                ))}
+              {/* Hiển thị thông báo khi đã thêm hết dịch vụ */}
+              {services.filter(
+                (service) =>
+                  !contractServices.some(
+                    (cs) => String(cs.id_service) === String(service.id_service)
+                  )
+              ).length === 0 && (
+                <option value="" disabled>
+                  Đã thêm tất cả dịch vụ có sẵn
                 </option>
-              ))}
+              )}
             </select>
             <button
               onClick={addService}

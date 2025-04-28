@@ -11,8 +11,6 @@ const UserDetails = ({ userId, onClose }) => {
   const [error, setError] = useState(null);
   const [apiResponses, setApiResponses] = useState({});
 
-  
-
   useEffect(() => {
     // Function to fetch all user data
     const fetchAllUserData = async () => {

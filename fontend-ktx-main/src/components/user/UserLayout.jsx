@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/admin/AuthContext';
-import Sidebar from './Sidebar';
-import './UserLayout.css';
+import React, { useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/admin/AuthContext";
+import Sidebar from "./Sidebar";
+import "./UserLayout.css";
 
 const UserLayout = () => {
   const { user, logout } = useAuth();
@@ -15,16 +15,16 @@ const UserLayout = () => {
     setLoggingOut(true);
     try {
       await logout();
-      navigate('/login');
+      navigate("/login");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     } finally {
       setLoggingOut(false);
     }
   };
 
   const handleLogin = () => {
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -56,7 +56,7 @@ const UserLayout = () => {
         </div>
         <div className="content">
           <Outlet />
-          {!window.location.pathname.includes('/user/dang-ky-noi-tru') && (
+          {!window.location.pathname.includes("/user/dang-ky-noi-tru") && (
             <>
               <p className="footer-text">Phát triển bởi Nhóm 9</p>
             </>
@@ -67,4 +67,4 @@ const UserLayout = () => {
   );
 };
 
-export default UserLayout; 
+export default UserLayout;

@@ -13,11 +13,11 @@ const PaymentModal = ({ isOpen, onClose, contractId }) => {
       }}
     >
       <div
-        className="absolute w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden"
+        className="w-full max-w-3xl bg-white rounded-lg shadow-lg overflow-hidden"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative h-full">
+        <div className="relative max-h-[90vh] overflow-y-auto">
           <CreatePayment contractId={contractId} onSuccess={onClose} />
 
           <button

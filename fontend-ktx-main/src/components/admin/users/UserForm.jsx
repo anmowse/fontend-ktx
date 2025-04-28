@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { XMarkIcon as XIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-toastify";
 
 const UserForm = ({ user, onSubmit, onCancel }) => {
   // Kiểm tra xem là chế độ thêm mới hay chỉnh sửa
@@ -109,6 +110,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
 
     // Kiểm tra tính hợp lệ của form
     if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin nhập!");
       return;
     }
 
@@ -126,12 +128,22 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
 
       // Gọi hàm onSubmit từ props
       await onSubmit(dataToSubmit, isEditMode);
+      toast.success(
+        isEditMode ? "Cập nhật thành công!" : "Thêm mới thành công!"
+      );
     } catch (error) {
-      // Hiển thị lỗi từ API
+      // Hiển thị lỗi từ API hoặc lỗi dữ liệu
+      let msg = "Có lỗi xảy ra. Vui lòng thử lại.";
+      if (error?.response?.data?.message) {
+        msg = error.response.data.message;
+      } else if (typeof error === "string") {
+        msg = error;
+      }
       setErrors((prev) => ({
         ...prev,
-        form: error,
+        form: msg,
       }));
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

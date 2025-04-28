@@ -285,7 +285,9 @@ export const LoginPage = () => {
             setLocalError("Email hoặc mật khẩu không đúng");
             break;
           case 422:
-            setLocalError(err.response.data.message || "Dữ liệu không hợp lệ");
+            setLocalError(
+              err.response.data.message || "Tài khoản bị trùng vui lòng đổi!"
+            );
             break;
           case 429:
             setLocalError(

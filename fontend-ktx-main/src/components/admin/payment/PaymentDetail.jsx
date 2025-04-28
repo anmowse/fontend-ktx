@@ -12,216 +12,144 @@ const PaymentDetail = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [roomInfo, setRoomInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [newPaymentDetail, setNewPaymentDetail] = useState({
+  const [addingDetail, setAddingDetail] = useState(false);
+  const [newDetail, setNewDetail] = useState({
     typePay: "tien mat",
     amountPay: "",
   });
 
   useEffect(() => {
     fetchPaymentData();
+    // eslint-disable-next-line
   }, [id]);
 
   const fetchPaymentData = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
 
-      // Lấy thông tin thanh toán
-      const paymentResponse = await axios.get(
+      // Lấy payment
+      const paymentRes = await axios.get(
         `http://127.0.0.1:8000/api/payments/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers }
       );
+      setPayment(paymentRes.data);
 
-      if (paymentResponse.data) {
-        setPayment(paymentResponse.data);
+      // Lấy payment details
+      const detailsRes = await axios.get(
+        `http://127.0.0.1:8000/api/payment-details?payment_id=${id}`,
+        { headers }
+      );
+      setPaymentDetails(detailsRes.data);
 
-        // Lấy chi tiết thanh toán
-        const detailsResponse = await axios.get(
-          `http://127.0.0.1:8000/api/payment-details?payment_id=${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      // Lấy contract
+      const contractRes = await axios.get(
+        `http://127.0.0.1:8000/api/contracts/${paymentRes.data.id_contracts}`,
+        { headers }
+      );
+      setContractInfo(contractRes.data);
 
-        if (detailsResponse.data) {
-          setPaymentDetails(detailsResponse.data);
-        }
+      // Lấy user
+      const userRes = await axios.get(
+        `http://127.0.0.1:8000/api/users/${contractRes.data.id_users}`,
+        { headers }
+      );
+      setUserInfo(userRes.data);
 
-        // Lấy thông tin hợp đồng
-        const contractResponse = await axios.get(
-          `http://127.0.0.1:8000/api/contracts/${paymentResponse.data.id_contracts}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (contractResponse.data) {
-          setContractInfo(contractResponse.data);
-
-          // Lấy thông tin người dùng
-          const userResponse = await axios.get(
-            `http://127.0.0.1:8000/api/users/${contractResponse.data.id_users}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (userResponse.data) {
-            setUserInfo(userResponse.data);
-          }
-
-          // Lấy thông tin phòng
-          const roomResponse = await axios.get(
-            `http://127.0.0.1:8000/api/rooms/${contractResponse.data.id_rooms}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (roomResponse.data) {
-            setRoomInfo(roomResponse.data);
-          }
-        }
-      }
+      // Lấy room
+      const roomRes = await axios.get(
+        `http://127.0.0.1:8000/api/rooms/${contractRes.data.id_rooms}`,
+        { headers }
+      );
+      setRoomInfo(roomRes.data);
 
       setLoading(false);
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu thanh toán:", error);
-      toast.error("Không thể tải thông tin thanh toán. Vui lòng thử lại sau.");
+      toast.error("Không thể tải thông tin thanh toán.");
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNewPaymentDetail({
-      ...newPaymentDetail,
-      [name]: value,
-    });
-  };
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (
-      !newPaymentDetail.amountPay ||
-      parseFloat(newPaymentDetail.amountPay) <= 0
-    ) {
-      toast.error("Vui lòng nhập số tiền hợp lệ");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        "http://127.0.0.1:8000/api/payment-details",
-        {
-          id_payments: id,
-          typePay: newPaymentDetail.typePay,
-          amountPay: newPaymentDetail.amountPay,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // Cập nhật trạng thái thanh toán nếu tổng số tiền đã thanh toán đủ
-      const totalPaid =
-        paymentDetails.reduce(
-          (sum, detail) => sum + parseFloat(detail.amountPay),
-          0
-        ) + parseFloat(newPaymentDetail.amountPay);
-
-      if (totalPaid >= payment.amount && payment.status === "chua thanh toan") {
-        await axios.put(
-          `http://127.0.0.1:8000/api/payments/${id}`,
-          { status: "da thanh toan" },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      }
-
-      toast.success("Đã thêm chi tiết thanh toán thành công!");
-
-      // Reset form và cập nhật dữ liệu
-      setNewPaymentDetail({
-        typePay: "tien mat",
-        amountPay: "",
-      });
-
-      fetchPaymentData();
-    } catch (error) {
-      console.error("Lỗi khi thêm chi tiết thanh toán:", error);
-      toast.error("Không thể thêm chi tiết thanh toán. Vui lòng thử lại sau.");
-    }
-  };
-
-  const handleUpdateStatus = async (newStatus) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        `http://127.0.0.1:8000/api/payments/${id}`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      toast.success("Cập nhật trạng thái thanh toán thành công!");
-      fetchPaymentData();
-    } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
-      toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại sau.");
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
+
+  const handleDetailChange = (e) => {
+    const { name, value } = e.target;
+    setNewDetail((prev) => ({ ...prev, [name]: value }));
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
+  const handleAddDetail = async (e) => {
+    e.preventDefault();
+    if (!newDetail.amountPay || Number(newDetail.amountPay) <= 0) {
+      toast.warning("Vui lòng nhập số tiền hợp lệ");
+      return;
+    }
+    setAddingDetail(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(
+        "http://127.0.0.1:8000/api/payment-details",
+        {
+          id_payments: id,
+          typePay: newDetail.typePay,
+          amountPay: newDetail.amountPay,
+        },
+        { headers }
+      );
+      toast.success("Thêm chi tiết thanh toán thành công!");
+      setNewDetail({ typePay: "tien mat", amountPay: "" });
+      fetchPaymentData();
+    } catch (error) {
+      toast.error("Không thể thêm chi tiết thanh toán.");
+    } finally {
+      setAddingDetail(false);
+    }
   };
 
-  const calculateTotalPaid = () => {
-    return paymentDetails.reduce(
-      (sum, detail) => sum + parseFloat(detail.amountPay),
-      0
-    );
-  };
+  const handleDeletePayment = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn xóa khoản thanh toán này? Tất cả chi tiết thanh toán liên quan cũng sẽ bị xóa!"
+      )
+    ) {
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
 
-  const calculateRemainingAmount = () => {
-    if (!payment) return 0;
-    const totalPaid = calculateTotalPaid();
-    return Math.max(0, payment.amount - totalPaid);
+      // Xóa từng payment_details liên quan trước
+      for (const detail of paymentDetails) {
+        await axios.delete(
+          `http://127.0.0.1:8000/api/payment-details/${detail.id_details}`,
+          { headers }
+        );
+      }
+
+      // Xóa payment
+      await axios.delete(`http://127.0.0.1:8000/api/payments/${id}`, {
+        headers,
+      });
+
+      toast.success("Đã xóa khoản thanh toán thành công!");
+      navigate("/payments");
+    } catch (error) {
+      toast.error(
+        "Không thể xóa khoản thanh toán. Hãy chắc chắn đã xóa hết các dữ liệu liên quan."
+      );
+    }
   };
 
   if (loading) {
@@ -260,12 +188,20 @@ const PaymentDetail = () => {
         <h1 className="text-3xl font-bold text-gray-800">
           Chi tiết thanh toán #{payment.id_payments}
         </h1>
-        <Link
-          to="/payments"
-          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-        >
-          Quay lại danh sách
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/payments"
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Quay lại danh sách
+          </Link>
+          <button
+            onClick={handleDeletePayment}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Xóa thanh toán
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -305,36 +241,95 @@ const PaymentDetail = () => {
                   : "Chưa thanh toán"}
               </span>
             </div>
-            <div>
-              <p className="text-gray-600 mb-1">Số tiền đã thanh toán:</p>
-              <p className="font-medium">
-                {formatCurrency(calculateTotalPaid())}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600 mb-1">Số tiền còn lại:</p>
-              <p className="font-medium">
-                {formatCurrency(calculateRemainingAmount())}
-              </p>
-            </div>
           </div>
 
-          <div className="mt-6 flex space-x-2">
-            {payment.status === "chua thanh toan" ? (
-              <button
-                onClick={() => handleUpdateStatus("da thanh toan")}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Đánh dấu đã thanh toán
-              </button>
+          {/* Lịch sử chi tiết thanh toán */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-2">
+              Lịch sử chi tiết thanh toán
+            </h3>
+            {paymentDetails.filter(
+              (d) => String(d.id_payments) === String(payment.id_payments)
+            ).length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Mã chi tiết
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Phương thức
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Số tiền
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paymentDetails
+                    .filter(
+                      (d) =>
+                        String(d.id_payments) === String(payment.id_payments)
+                    )
+                    .map((detail) => (
+                      <tr key={detail.id_details}>
+                        <td className="px-4 py-2">{detail.id_details}</td>
+                        <td className="px-4 py-2">
+                          {detail.typePay === "tien mat"
+                            ? "Tiền mặt"
+                            : detail.typePay === "momo"
+                            ? "MoMo"
+                            : "Tài khoản ngân hàng"}
+                        </td>
+                        <td className="px-4 py-2">
+                          {formatCurrency(detail.amountPay)}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             ) : (
-              <button
-                onClick={() => handleUpdateStatus("chua thanh toan")}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Đánh dấu chưa thanh toán
-              </button>
+              <p className="text-gray-500 italic">
+                Chưa có chi tiết thanh toán nào.
+              </p>
             )}
+          </div>
+
+          {/* Thêm chi tiết thanh toán mới */}
+          <div className="mt-6">
+            <h4 className="font-semibold mb-2">Thêm chi tiết thanh toán</h4>
+            <form
+              onSubmit={handleAddDetail}
+              className="flex flex-col md:flex-row gap-2 items-end"
+            >
+              <select
+                name="typePay"
+                value={newDetail.typePay}
+                onChange={handleDetailChange}
+                className="border rounded px-3 py-2"
+              >
+                <option value="tien mat">Tiền mặt</option>
+                <option value="momo">MoMo</option>
+                <option value="tai khoan ngan hang">Tài khoản ngân hàng</option>
+              </select>
+              <input
+                type="number"
+                name="amountPay"
+                value={newDetail.amountPay}
+                onChange={handleDetailChange}
+                placeholder="Số tiền"
+                className="border rounded px-3 py-2"
+                min={0}
+                required
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                disabled={addingDetail}
+              >
+                {addingDetail ? "Đang thêm..." : "Thêm"}
+              </button>
+            </form>
           </div>
         </div>
 
@@ -343,7 +338,6 @@ const PaymentDetail = () => {
           <h2 className="text-xl font-bold mb-4 border-b pb-2">
             Thông tin liên quan
           </h2>
-
           {userInfo && (
             <div className="mb-4">
               <h3 className="font-bold text-gray-700 mb-2">
@@ -361,7 +355,6 @@ const PaymentDetail = () => {
               </p>
             </div>
           )}
-
           {roomInfo && (
             <div className="mb-4">
               <h3 className="font-bold text-gray-700 mb-2">Thông tin phòng</h3>
@@ -379,145 +372,7 @@ const PaymentDetail = () => {
               </p>
             </div>
           )}
-
-          {contractInfo && (
-            <div>
-              <h3 className="font-bold text-gray-700 mb-2">
-                Thông tin hợp đồng
-              </h3>
-              <p>
-                <span className="text-gray-600">Ngày bắt đầu:</span>{" "}
-                {formatDate(contractInfo.start_date)}
-              </p>
-              <p>
-                <span className="text-gray-600">Ngày kết thúc:</span>{" "}
-                {formatDate(contractInfo.end_date)}
-              </p>
-              <div className="mt-2">
-                <Link
-                  to={`/contracts/${contractInfo.id_contracts}`}
-                  className="text-blue-500 hover:underline"
-                >
-                  Xem chi tiết hợp đồng
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* Lịch sử thanh toán */}
-      <div className="bg-white shadow-md rounded-lg p-6 mt-6">
-        <h2 className="text-xl font-bold mb-4 border-b pb-2">
-          Lịch sử thanh toán
-        </h2>
-
-        {paymentDetails.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mã giao dịch
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phương thức thanh toán
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Số tiền
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ngày tạo
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paymentDetails.map((detail) => (
-                  <tr key={detail.id_details} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {detail.id_details}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {detail.typePay === "tien mat"
-                        ? "Tiền mặt"
-                        : detail.typePay === "momo"
-                        ? "MoMo"
-                        : "Tài khoản ngân hàng"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCurrency(detail.amountPay)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {detail.created_at
-                        ? formatDate(detail.created_at)
-                        : "Không có dữ liệu"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">
-            Chưa có giao dịch thanh toán nào.
-          </p>
-        )}
-      </div>
-
-      {/* Form thêm thanh toán mới */}
-      <div className="bg-white shadow-md rounded-lg p-6 mt-6">
-        <h2 className="text-xl font-bold mb-4 border-b pb-2">
-          Thêm giao dịch thanh toán mới
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">
-                Phương thức thanh toán
-              </label>
-              <select
-                name="typePay"
-                value={newPaymentDetail.typePay}
-                onChange={handleChange}
-                className="border rounded px-3 py-2 w-full"
-                required
-              >
-                <option value="tien mat">Tiền mặt</option>
-                <option value="momo">MoMo</option>
-                <option value="tai khoan ngan hang">Tài khoản ngân hàng</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-2">Số tiền</label>
-              <input
-                type="number"
-                name="amountPay"
-                value={newPaymentDetail.amountPay}
-                onChange={handleChange}
-                className="border rounded px-3 py-2 w-full"
-                required
-                min="0"
-                step="0.01"
-                placeholder="Nhập số tiền"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              disabled={
-                payment.status === "da thanh toan" &&
-                calculateRemainingAmount() <= 0
-              }
-            >
-              Thêm giao dịch
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
