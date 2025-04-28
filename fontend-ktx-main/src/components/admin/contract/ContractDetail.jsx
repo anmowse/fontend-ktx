@@ -10,6 +10,8 @@ import {
   FaFileContract,
   FaWifi,
   FaPlug,
+  FaCar,
+  FaTrashAlt,
 } from "react-icons/fa";
 import { format, differenceInMonths } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -120,15 +122,16 @@ const ContractDetail = ({
 
   // Lấy các dịch vụ đăng ký của hợp đồng này
   const servicesForContract = contractServices
-    .filter((cs) => cs.id_contracts === contract.id_contracts)
+    .filter((cs) => cs.id_contracts == contract.id_contracts)
     .map((cs) => {
-      const serviceInfo = services.find(
-        (s) => s.id_services === cs.id_services
-      );
+      const serviceInfo = services.find((s) => s.id_service == cs.id_service);
       return {
         ...cs,
-        name: serviceInfo?.name || "Không xác định",
-        price: serviceInfo?.price || 0,
+        name:
+          serviceInfo?.nameService ||
+          serviceInfo?.service_name ||
+          "Không xác định",
+        price: serviceInfo?.priceService || serviceInfo?.service_price || 0,
       };
     });
 
@@ -183,7 +186,8 @@ const ContractDetail = ({
   }, [onUpdateServices, onCreatePayment]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-3xl transform scale-95 origin-top">
+    //overflow-hidden
+    <div className="bg-white rounded-lg shadow-md  w-full max-w-3xl transform scale-95 origin-top">
       {/* Header - Giảm padding */}
       <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
         <div className="flex items-center">
@@ -298,25 +302,38 @@ const ContractDetail = ({
                   </div>
                 </div>
 
-                {/* Dịch vụ đăng ký - Gọn hơn */}
+                {/* Dịch vụ đăng ký - Cải thiện hiển thị */}
                 <div className="mb-2">
                   <p className="text-xs text-gray-500">Dịch vụ đăng ký:</p>
                   {servicesForContract.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {servicesForContract.map((service, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-md text-xs"
-                        >
-                          {service.name.includes("Internet") && (
-                            <FaWifi className="mr-1 text-xs text-blue-500" />
-                          )}
-                          {service.name.includes("Dien") && (
-                            <FaPlug className="mr-1 text-xs text-yellow-500" />
-                          )}
-                          {service.name}
-                        </span>
-                      ))}
+                      {servicesForContract.map((service, index) => {
+                        const serviceName = service.name;
+                        return (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-md text-xs"
+                          >
+                            {/* Icon dựa trên tên dịch vụ */}
+                            {serviceName.toLowerCase().includes("internet") ||
+                            serviceName.toLowerCase().includes("wifi") ? (
+                              <FaWifi className="mr-1 text-xs text-blue-500" />
+                            ) : serviceName.toLowerCase().includes("dien") ||
+                              serviceName.toLowerCase().includes("nuoc") ? (
+                              <FaPlug className="mr-1 text-xs text-yellow-500" />
+                            ) : serviceName.toLowerCase().includes("xe") ||
+                              serviceName.toLowerCase().includes("giu") ? (
+                              <FaCar className="mr-1 text-xs text-green-500" />
+                            ) : serviceName.toLowerCase().includes("rac") ? (
+                              <FaTrashAlt className="mr-1 text-xs text-gray-500" />
+                            ) : null}
+                            {serviceName}
+                            <span className="ml-1 text-green-600">
+                              ({formatCurrency(service.price)})
+                            </span>
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-xs italic text-gray-500">

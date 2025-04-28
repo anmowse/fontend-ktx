@@ -13,91 +13,99 @@ import {
 const ManageContractService = ({ contractId, onClose, onUpdate }) => {
   const [services, setServices] = useState([]);
   const [contractServices, setContractServices] = useState([]);
-  const [selectedService, setSelectedService] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedService, setSelectedService] = useState("");
 
+  // Fetch services and contract services
   useEffect(() => {
-    fetchServices();
-    fetchContractServices();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Lấy danh sách tất cả dịch vụ
+        const servicesRes = await axios.get(
+          "http://127.0.0.1:8000/api/services",
+          { headers }
+        );
+
+        // Lấy tất cả contract-service từ API và lọc theo contractId
+        const allContractServicesRes = await axios.get(
+          "http://127.0.0.1:8000/api/contract-service",
+          { headers }
+        );
+        const contractServicesData = allContractServicesRes.data.filter(
+          (cs) => cs.id_contracts == contractId
+        );
+
+        // Ánh xạ các trường nameService và priceService sang service_name và service_price
+        // để phù hợp với CreatePayment.jsx
+        const mappedServices = servicesRes.data.map((service) => ({
+          ...service,
+          service_name: service.nameService,
+          service_price: service.priceService,
+        }));
+
+        setServices(mappedServices);
+        setContractServices(contractServicesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Không thể tải dữ liệu dịch vụ");
+        // Đảm bảo setServices và setContractServices được gọi để tránh lỗi
+        setServices([]);
+        setContractServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [contractId]);
 
-  const fetchServices = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/api/services", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setServices(response.data);
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách dịch vụ:", error);
-      toast.error("Không thể tải danh sách dịch vụ");
-    }
-  };
-
-  const fetchContractServices = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://127.0.0.1:8000/api/contract-service",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      // Lọc dịch vụ theo contractId
-      const filteredServices = response.data.filter(
-        (cs) => cs.id_contracts == contractId
-      );
-      setContractServices(filteredServices);
-    } catch (error) {
-      console.error("Lỗi khi lấy dịch vụ của hợp đồng:", error);
-      toast.error("Không thể tải dịch vụ của hợp đồng");
-    }
-  };
-
   const addService = async () => {
-    if (!selectedService) {
-      toast.warning("Vui lòng chọn dịch vụ");
-      return;
-    }
-
-    // Kiểm tra dịch vụ đã tồn tại cho hợp đồng này chưa
-    const exists = contractServices.some(
-      (cs) => cs.id_service == selectedService
-    );
-    if (exists) {
-      toast.warning("Dịch vụ này đã được thêm vào hợp đồng");
-      return;
-    }
+    if (!selectedService) return;
 
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Kiểm tra xem dịch vụ đã tồn tại trong hợp đồng chưa
+      const isDuplicate = contractServices.some(
+        (cs) => cs.id_service == selectedService
+      );
+
+      if (isDuplicate) {
+        toast.warning("Dịch vụ này đã được thêm vào hợp đồng!");
+        setLoading(false);
+        return;
+      }
+
+      // Thêm dịch vụ mới vào hợp đồng
       await axios.post(
         "http://127.0.0.1:8000/api/contract-service",
         {
           id_contracts: contractId,
           id_service: selectedService,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers }
       );
 
-      // Thông báo thành công và kích hoạt cập nhật dữ liệu
-      toast.success("Thêm dịch vụ thành công!");
-      await fetchContractServices();
+      // Làm mới danh sách dịch vụ của hợp đồng bằng cách lấy tất cả và lọc
+      const allContractServicesRes = await axios.get(
+        "http://127.0.0.1:8000/api/contract-service",
+        { headers }
+      );
+      const contractServicesData = allContractServicesRes.data.filter(
+        (cs) => cs.id_contracts == contractId
+      );
+
+      setContractServices(contractServicesData);
       setSelectedService("");
+      toast.success("Thêm dịch vụ thành công");
 
-      // Kích hoạt sự kiện cập nhật dữ liệu khắp ứng dụng
-      window.dispatchEvent(new Event("contract-data-changed"));
-
+      // Notify parent
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Lỗi khi thêm dịch vụ:", error);
@@ -111,22 +119,22 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
       await axios.delete(
         `http://127.0.0.1:8000/api/contract-service/${contractServiceId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers }
       );
 
-      toast.success("Xóa dịch vụ thành công!");
-      await fetchContractServices(); // Đảm bảo dữ liệu mới nhất
+      // Update local state
+      setContractServices((prev) =>
+        prev.filter((cs) => cs.id_Cont_Ser !== contractServiceId)
+      );
 
-      // Kích hoạt sự kiện cập nhật dữ liệu
-      window.dispatchEvent(new Event("contract-data-changed"));
+      toast.success("Xóa dịch vụ thành công");
 
-      if (onUpdate) onUpdate(); // Thông báo cho component cha
+      // Notify parent
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Lỗi khi xóa dịch vụ:", error);
       toast.error("Không thể xóa dịch vụ. Vui lòng thử lại sau.");
@@ -135,7 +143,10 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
     }
   };
 
+  // Cập nhật hàm getServiceIcon để sử dụng service_name thay vì nameService
   const getServiceIcon = (serviceName) => {
+    if (!serviceName) return null;
+
     const name = serviceName.toLowerCase();
     if (name.includes("internet") || name.includes("wifi"))
       return <FaWifi className="text-blue-500" />;
@@ -186,12 +197,18 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
                 >
                   <div className="flex items-center">
                     <div className="w-8 h-8 flex items-center justify-center mr-2">
-                      {getServiceIcon(service.nameService)}
+                      {getServiceIcon(
+                        service.service_name || service.nameService
+                      )}
                     </div>
                     <div>
-                      <p className="font-medium">{service.nameService}</p>
+                      <p className="font-medium">
+                        {service.service_name || service.nameService}
+                      </p>
                       <p className="text-green-600 text-sm">
-                        {formatCurrency(service.priceService)}
+                        {formatCurrency(
+                          service.service_price || service.priceService
+                        )}
                       </p>
                     </div>
                   </div>
@@ -225,7 +242,10 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
               <option value="">-- Chọn dịch vụ --</option>
               {services.map((service) => (
                 <option key={service.id_service} value={service.id_service}>
-                  {service.nameService} - {formatCurrency(service.priceService)}
+                  {service.service_name || service.nameService} -{" "}
+                  {formatCurrency(
+                    service.service_price || service.priceService
+                  )}
                 </option>
               ))}
             </select>
