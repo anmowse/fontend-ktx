@@ -453,7 +453,7 @@ const UserDetails = ({ userId, onClose }) => {
             ) : (
               <div className="px-4 py-5 text-center text-gray-500">
                 Không có thông tin thanh toán
-              </div>
+              </div>  
             )}
           </div>
         </div>

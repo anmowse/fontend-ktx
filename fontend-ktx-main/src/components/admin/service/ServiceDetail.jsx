@@ -28,14 +28,11 @@ const ServiceDetail = () => {
       const token = localStorage.getItem("token");
 
       // Lấy thông tin dịch vụ
-      const serviceResponse = await axios.get(
-        `http://127.0.0.1:8000/api/services/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const serviceResponse = await axios.get(`${API_URL}/services/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (serviceResponse.data) {
         setService(serviceResponse.data);
@@ -46,7 +43,7 @@ const ServiceDetail = () => {
 
         // Lấy thông tin các hợp đồng sử dụng dịch vụ này
         const contractServiceResponse = await axios.get(
-          `http://127.0.0.1:8000/api/contract-service?service_id=${id}`,
+          `${API_URL}/contract-service?service_id=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -65,14 +62,11 @@ const ServiceDetail = () => {
           );
 
           // Lấy thông tin hợp đồng
-          const contractsResponse = await axios.get(
-            `http://127.0.0.1:8000/api/contracts`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const contractsResponse = await axios.get(`${API_URL}/contracts`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           filteredContracts = contractsResponse.data.filter((contract) =>
             contractIds.includes(contract.id_contracts)
@@ -85,14 +79,11 @@ const ServiceDetail = () => {
           ];
 
           // Lấy thông tin phòng
-          const roomsResponse = await axios.get(
-            `http://127.0.0.1:8000/api/rooms`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const roomsResponse = await axios.get(`${API_URL}/rooms`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           filteredRooms = roomsResponse.data.filter((room) =>
             roomIds.includes(room.id_rooms)
@@ -125,15 +116,11 @@ const ServiceDetail = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.put(
-        `http://127.0.0.1:8000/api/services/${id}`,
-        editedService,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await axios.put(`${API_URL}/services/${id}`, editedService, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       toast.success("Cập nhật dịch vụ thành công!");
       setIsEditing(false);
@@ -166,7 +153,7 @@ const ServiceDetail = () => {
         return;
       }
 
-      await axios.delete(`http://127.0.0.1:8000/api/services/${id}`, {
+      await axios.delete(`${API_URL}/services/${id}`, {
         headers,
       });
 

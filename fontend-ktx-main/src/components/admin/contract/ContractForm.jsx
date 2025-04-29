@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaSave, FaTimes, FaCalendar } from "react-icons/fa";
 import { differenceInMonths } from "date-fns";
 import axios from "axios";
+import API_URL from "../../../config/api";
 
 const ContractForm = ({
   contract = null,

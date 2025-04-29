@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import API_URL from "../../config/api";
 
 const ServiceManagement = () => {
   const [services, setServices] = useState([]);
@@ -22,7 +23,7 @@ const ServiceManagement = () => {
   const fetchServices = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/api/services", {
+      const response = await axios.get(`${API_URL}/services`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -49,7 +50,7 @@ const ServiceManagement = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này không?")) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://127.0.0.1:8000/api/services/${id}`, {
+        await axios.delete(`${API_URL}/services/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -9,6 +9,7 @@ import {
   FaCar,
   FaTrashAlt,
 } from "react-icons/fa";
+import API_URL from "../../../config/api";
 
 const ManageContractService = ({ contractId, onClose, onUpdate }) => {
   const [services, setServices] = useState([]);
@@ -26,8 +27,8 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
 
         // Sử dụng Promise.all để gọi cả hai API đồng thời
         const [servicesRes, allContractServicesRes] = await Promise.all([
-          axios.get("http://127.0.0.1:8000/api/services", { headers }),
-          axios.get("http://127.0.0.1:8000/api/contract-service", { headers }),
+          axios.get(`${API_URL}/services`, { headers }),
+          axios.get(`${API_URL}contract-service`, { headers }),
         ]);
 
         // Lọc dịch vụ theo contractId, đảm bảo sử dụng so sánh đúng kiểu dữ liệu
@@ -102,7 +103,7 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
 
       // Thêm dịch vụ mới vào hợp đồng
       await axios.post(
-        "http://127.0.0.1:8000/api/contract-service",
+        `${API_URL}/contract-service`,
         {
           id_contracts: contractId,
           id_service: selectedService,
@@ -112,7 +113,7 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
 
       // Làm mới danh sách dịch vụ của hợp đồng
       const allContractServicesRes = await axios.get(
-        "http://127.0.0.1:8000/api/contract-service",
+        `${API_URL}/contract-service`,
         { headers }
       );
       const contractServicesData = allContractServicesRes.data.filter(
@@ -143,10 +144,9 @@ const ManageContractService = ({ contractId, onClose, onUpdate }) => {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      await axios.delete(
-        `http://127.0.0.1:8000/api/contract-service/${contractServiceId}`,
-        { headers }
-      );
+      await axios.delete(`${API_URL}/contract-service/${contractServiceId}`, {
+        headers,
+      });
 
       // Cập nhật state local
       setContractServices((prev) =>

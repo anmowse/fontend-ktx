@@ -20,7 +20,7 @@ const PaymentManagement = () => {
   const fetchPayments = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/api/payments", {
+      const response = await axios.get(`${API_URL}/payments`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -38,7 +38,7 @@ const PaymentManagement = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://127.0.0.1:8000/api/payments/${id}`,
+        `${API_URL}/payments/${id}`,
         { status: newStatus },
         {
           headers: {

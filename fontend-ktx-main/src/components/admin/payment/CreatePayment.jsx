@@ -9,6 +9,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import ContractDateCalculator from "../utils/ContractDateCalculator";
+import API_URL from "../../../config/api";
 
 const CreatePayment = ({ onSuccess, contractId = null }) => {
   const [contracts, setContracts] = useState([]);
@@ -69,7 +70,7 @@ const CreatePayment = ({ onSuccess, contractId = null }) => {
       const headers = { Authorization: `Bearer ${token}` };
 
       const roomServicesRes = await axios.get(
-        `http://127.0.0.1:8000/api/rooms/service/${room.id_rooms}`,
+        `${API_URL}/rooms/service/${room.id_rooms}`,
         { headers }
       );
 
@@ -127,10 +128,10 @@ const CreatePayment = ({ onSuccess, contractId = null }) => {
 
         const [contractsRes, roomsRes, usersRes, paymentsRes] =
           await Promise.all([
-            axios.get("http://127.0.0.1:8000/api/contracts", { headers }),
-            axios.get("http://127.0.0.1:8000/api/rooms", { headers }),
-            axios.get("http://127.0.0.1:8000/api/users", { headers }),
-            axios.get("http://127.0.0.1:8000/api/payments", { headers }),
+            axios.get(`${API_URL}/contracts`, { headers }),
+            axios.get(`${API_URL}/rooms`, { headers }),
+            axios.get(`${API_URL}/users`, { headers }),
+            axios.get(`${API_URL}/payments`, { headers }),
           ]);
 
         setContracts(contractsRes.data);
@@ -282,11 +283,9 @@ const CreatePayment = ({ onSuccess, contractId = null }) => {
         "Content-Type": "application/json",
       };
 
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/payments",
-        paymentData,
-        { headers }
-      );
+      const response = await axios.post(`${API_URL}/payments`, paymentData, {
+        headers,
+      });
 
       if (
         formData.status === "da thanh toan" &&
@@ -301,7 +300,7 @@ const CreatePayment = ({ onSuccess, contractId = null }) => {
 
         try {
           const detailResponse = await axios.post(
-            "http://127.0.0.1:8000/api/payment-details",
+            `${API_URL}/payment-details`,
             paymentDetailData,
             { headers }
           );

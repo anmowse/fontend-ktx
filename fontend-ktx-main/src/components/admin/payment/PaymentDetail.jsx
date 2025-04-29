@@ -30,36 +30,35 @@ const PaymentDetail = () => {
       const headers = { Authorization: `Bearer ${token}` };
 
       // Lấy payment
-      const paymentRes = await axios.get(
-        `http://127.0.0.1:8000/api/payments/${id}`,
-        { headers }
-      );
+      const paymentRes = await axios.get(`${API_URL}/payments/${id}`, {
+        headers,
+      });
       setPayment(paymentRes.data);
 
       // Lấy payment details
       const detailsRes = await axios.get(
-        `http://127.0.0.1:8000/api/payment-details?payment_id=${id}`,
+        `${API_URL}/payment-details?payment_id=${id}`,
         { headers }
       );
       setPaymentDetails(detailsRes.data);
 
       // Lấy contract
       const contractRes = await axios.get(
-        `http://127.0.0.1:8000/api/contracts/${paymentRes.data.id_contracts}`,
+        `${API_URL}/contracts/${paymentRes.data.id_contracts}`,
         { headers }
       );
       setContractInfo(contractRes.data);
 
       // Lấy user
       const userRes = await axios.get(
-        `http://127.0.0.1:8000/api/users/${contractRes.data.id_users}`,
+        `${API_URL}/users/${contractRes.data.id_users}`,
         { headers }
       );
       setUserInfo(userRes.data);
 
       // Lấy room
       const roomRes = await axios.get(
-        `http://127.0.0.1:8000/api/rooms/${contractRes.data.id_rooms}`,
+        `${API_URL}/rooms/${contractRes.data.id_rooms}`,
         { headers }
       );
       setRoomInfo(roomRes.data);
@@ -100,7 +99,7 @@ const PaymentDetail = () => {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
       await axios.post(
-        "http://127.0.0.1:8000/api/payment-details",
+        `${API_URL}/payment-details`,
         {
           id_payments: id,
           typePay: newDetail.typePay,
@@ -132,14 +131,13 @@ const PaymentDetail = () => {
 
       // Xóa từng payment_details liên quan trước
       for (const detail of paymentDetails) {
-        await axios.delete(
-          `http://127.0.0.1:8000/api/payment-details/${detail.id_details}`,
-          { headers }
-        );
+        await axios.delete(`${API_URL}/payment-details/${detail.id_details}`, {
+          headers,
+        });
       }
 
       // Xóa payment
-      await axios.delete(`http://127.0.0.1:8000/api/payments/${id}`, {
+      await axios.delete(`${API_URL}/payments/${id}`, {
         headers,
       });
 

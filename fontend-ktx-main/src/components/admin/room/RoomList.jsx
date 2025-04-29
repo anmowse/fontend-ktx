@@ -27,7 +27,10 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
     const usersData = {};
 
     try {
-      // Chia thành các nhóm nhỏ để tránh quá nhiều request cùng lúc
+      // Lấy token từ localStorage
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      console.log(headers);
       const batchSize = 10;
       const batches = [];
 
@@ -41,7 +44,8 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
           batch.map(async (room) => {
             try {
               const response = await axios.get(
-                `${API_URL}/room/${room.id_rooms}/users`
+                `${API_URL}/room/${room.id_rooms}/users`,
+                { headers }
               );
               usersData[room.id_rooms] = response.data?.length || 0;
             } catch (err) {
@@ -250,13 +254,12 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {currentItems.length > 0 ? (
               currentItems.map((room) => {
-                // Tìm tòa nhà tương ứng với phòng
+                console.log(room);
                 const building = buildings.find(
                   (b) => b.id_buildings === room.id_buildings
                 );
 
-                // Lấy số người thực tế và tối đa
-                const actualUsers =
+                const kiemtraUser =
                   roomUsers[room.id_rooms] !== undefined
                     ? roomUsers[room.id_rooms]
                     : room.current_occupancy;
@@ -277,16 +280,16 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          actualUsers >= maxOccupancy
+                          kiemtraUser >= maxOccupancy
                             ? "bg-red-100 text-red-800"
-                            : actualUsers >= maxOccupancy * 0.8
+                            : kiemtraUser >= maxOccupancy * 0.8
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-green-100 text-green-800"
                         }`}
                       >
                         {loadingUsers && roomUsers[room.id_rooms] === undefined
                           ? "..."
-                          : actualUsers}{" "}
+                          : kiemtraUser}{" "}
                         / {maxOccupancy}
                       </span>
                     </td>
@@ -312,13 +315,26 @@ const RoomList = ({ rooms, buildings, onEdit, onDelete, onView }) => {
                         >
                           <FaEdit />
                         </button>
-                        <button
-                          onClick={() => onDelete(room)} // Giữ nguyên, bởi vì chúng ta đã xử lý trong handleDeleteRoom
-                          className="text-red-600 hover:text-red-900"
-                          title="Xóa"
-                        >
-                          <FaTrash />
-                        </button>
+                        {kiemtraUser === 0 ? (
+                          <button
+                            onClick={() => {
+
+                              if (!headers) {
+                                toast.error(
+                                  "Bạn cần đăng nhập để thực hiện chức năng này!"
+                                );
+                                return;
+                              }
+                              onDelete(room);
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                            title="Xóa"
+                          >
+                            <FaTrash />
+                          </button>
+                        ) : (
+                          ""
+                        )}
                       </div>
                     </td>
                   </tr>
